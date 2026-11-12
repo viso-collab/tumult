@@ -3,12 +3,14 @@ const BOTS = {};
 
 const BOT_SKILLS = {
   //            far away       up close
-  bramble:     { far: [0],    near: [2] },
-  pip:         { far: [0],    near: [2] },
-  grimjaw:     { far: [2],    near: [0] },
+  kitsu:       { far: [2],    near: [0] },
+  rook:        { far: [0],    near: [2] },
+  magmor:      { far: [0],    near: [2] },
+  morwen:      { far: [0],    near: [2] },
   nightweaver: { far: [0],    near: [2] },
   lumina:      { far: [0],    near: [] },
-  vex:         { far: [0, 2], near: [] },
+  sable:       { far: [0],    near: [2] },
+  tusk:        { far: [1],    near: [0, 2] },
 };
 
 function botInput(s, i) {
@@ -42,6 +44,7 @@ function botInput(s, i) {
   for (const e of s.fighters) {
     if (e.team === f.team || e.state === 'ko' || e.gone) continue;
     const d = Math.abs(e.x - f.x) + Math.abs(e.y - f.y) * .7;
+    if (e.stealthT > 0 && d > 120) continue;   // can't see Sable in her smoke
     if (d < best) { best = d; o = e; }
   }
   if (!o) return inp;

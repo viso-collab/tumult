@@ -5,11 +5,11 @@ const BTN = ['left', 'right', 'up', 'down', 'attack', 's1', 's2', 's3'];
 const ROUND_TIME = 60 * 60;   // 60 seconds
 const FALL_DAMAGE = 15;       // HP lost when falling off the stage
 const WINS_NEEDED = 2;
-const COMBO_PAUSE = 10;       // pause after a combo that stopped early (frames)
+const COMBO_WINDOW = 40;      // how long you have to continue the combo after a hit (frames, ~0.67 s)
 
 function newState(mode, online) {
   const n = mode === '2v2' ? 4 : 2;
-  const defaults = [0, 2, 4, 5];
+  const defaults = [0, 2, 5, 3];
   const players = [];
   for (let i = 0; i < n; i++) players.push({ char: defaults[i], ready: false, team: n === 2 ? i : i % 2, cpu: false });
   return {
@@ -56,7 +56,7 @@ function step(s, inp) {
 }
 
 // ---------- menus ----------
-const COLS = 3;
+const COLS = 4;
 function stepSelect(s, P) {
   const N = CHARS.length, rows = Math.ceil(N / COLS);
   s.players.forEach((pl, i) => {
@@ -114,6 +114,7 @@ function makeFighter(ci, i, team, sp, m) {
     move: null, hitSet: [], buf: 0, atkCd: 0, cds: [0, 0, 0], airUsed: [false, false, false], sk: -1,
     hitstun: 0, blockstun: 0, inv: 0, flash: 0, dropT: 0, landT: 0, hs: 0,
     glide: false, noGrav: false, armor: false, quaked: false, spAir: false, endAt: 0, gone: false,
+    comboNext: null, comboT: 0, moltenT: 0, stealthT: 0, zip: null,
   };
 }
 function startRound(s) {
@@ -199,6 +200,16 @@ function updateFighters(s, I, P) {
     for (let k = 0; k < 3; k++) if (f.cds[k] > 0) f.cds[k]--;
     if (f.dropT > 0) f.dropT--;
     if (f.landT > 0) f.landT--;
+    if (f.comboT > 0) f.comboT--;
+    if (f.stealthT > 0) f.stealthT--;
+    if (f.moltenT > 0) {
+      f.moltenT--;
+      if (s.tick % 20 === 0) for (const o of s.fighters) {   // Molten Core: touching Magmor burns
+        if (o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0) continue;
+        const r = hurtRect(f), h = hurtRect(o);
+        if (overlap({ x: r.x - 14, y: r.y - 10, w: r.w + 28, h: r.h + 10 }, h)) chip(s, o, 3);
+      }
+    }
     if (f.state === 'hurt') { f.hitstun--; if (f.hitstun <= 0) setState(f, f.onGround ? 'idle' : 'air'); }
     if (f.state === 'block' && f.blockstun > 0) f.blockstun--;
 
@@ -219,7 +230,7 @@ function control(s, f, C, inp, pr, plats) {
   if (f.state === 'block' && f.blockstun > 0) return;
   const o = nearestEnemy(s, f);
   // melee combo (one button)
-  if (pr.attack && f.atkCd <= 0) { startMove(f, 'jab1'); return; }
+  if (pr.attack && f.atkCd <= 0) { startMove(f, f.comboT > 0 && f.comboNext ? f.comboNext : 'jab1'); return; }
   // three extra attacks
   for (let k = 0; k < 3; k++) {
     if (!pr['s' + (k + 1)] || f.cds[k] > 0) continue;
@@ -254,16 +265,17 @@ function control(s, f, C, inp, pr, plats) {
 }
 
 // ---------- melee combo ----------
-function startMove(f, name) { f.state = 'attack'; f.move = name; f.st = 0; f.hitSet = []; f.buf = 0; }
+function startMove(f, name) { f.state = 'attack'; f.move = name; f.st = 0; f.hitSet = []; f.buf = 0; f.comboT = 0; }
 function updateAttack(s, f, C) {
   const mv = C.moves[f.move];
   if (!mv) { setState(f, 'idle'); return; }
   const [S, A, R] = mv.f;
   f.vx *= f.onGround ? .8 : .97;
-  if (f.st >= S && f.st < S + A) hitEnemies(s, f, mv.box, mv.dmg, mv.kb);
+  if (f.st >= S && f.st < S + A && hitEnemies(s, f, mv.box, mv.dmg + (f.stealthT > 0 ? 4 : 0), mv.kb)) f.stealthT = 0;
   if (mv.next && f.buf > 0 && f.st >= S + A) { startMove(f, mv.next); return; }   // continue the combo
   if (f.st >= S + A + R) {
-    f.atkCd = mv.cd || COMBO_PAUSE;   // the big hit gives a longer pause
+    if (mv.next) { f.comboNext = mv.next; f.comboT = COMBO_WINDOW; }   // wait a moment and the combo continues
+    else { f.comboNext = null; f.atkCd = mv.cd; }                      // the big hit gives a short pause
     f.move = null;
     setState(f, f.onGround ? 'idle' : 'air');
   }
@@ -362,7 +374,7 @@ function applyHit(s, o, dmg, kx, ky, hx, hy, fromX, opts) {
     ev(s, { t: 'block', x: hx, y: hy });
     return 'block';
   }
-  if (hasArmor(o) && dmg < 7) {        // heavy attacks can't be interrupted by small hits
+  if ((hasArmor(o) && dmg < 7) || (o.moltenT > 0 && dmg < 10)) {   // heavy attacks can't be interrupted by small hits
     o.hp = Math.max(0, o.hp - dmg); o.flash = 4; o.hs = 3;
     ev(s, { t: 'armor', x: hx, y: hy });
     return 'armor';
@@ -373,184 +385,252 @@ function applyHit(s, o, dmg, kx, ky, hx, hy, fromX, opts) {
   o.hitstun = opts.stun || Math.round((8 + dmg * 1.6) / Math.sqrt(C.weight));
   o.state = 'hurt'; o.st = 0; o.move = null; o.sk = -1;
   o.flash = 6; o.noGrav = false; o.glide = false; o.armor = false; o.face = side;
+  o.comboT = 0; o.stealthT = 0; o.zip = null;
   o.hs = dmg >= 10 ? 7 : dmg >= 6 ? 5 : 3;
   ev(s, { t: opts.stun ? 'snare' : 'hit', x: hx, y: hy, big: dmg >= 10, magic: !!opts.magic });
   return 'hit';
 }
 
+
 // ---------- projectiles ----------
+function chip(s, o, dmg) {   // damage without stun (fire, curses)
+  o.hp = Math.max(0, o.hp - dmg); o.flash = Math.max(o.flash, 3);
+  ev(s, { t: 'burn', x: o.x, y: o.y - CHARS[o.c].h * .5 });
+}
 function projRect(p) {
-  if (p.ground) return { x: p.x - p.w / 2, y: p.y - p.h, w: p.w, h: p.h };
-  if (p.type === 'strike') return { x: p.x - p.w / 2, y: p.y - p.h, w: p.w, h: p.h };
+  if (p.ground || p.anchor === 'bottom') return { x: p.x - p.w / 2, y: p.y - p.h, w: p.w, h: p.h };
   return { x: p.x - p.w / 2, y: p.y - p.h / 2, w: p.w, h: p.h };
 }
-function spawnProj(s, f, p) { p.owner = f.idx; p.team = f.team; p.age = 0; p.hitSet = []; s.projectiles.push(p); }
+function spawnProj(s, f, p) { p.owner = f.idx; p.team = f.team; p.age = 0; p.hitSet = []; s.projectiles.push(p); return p; }
+function reflectShots(s, f, box) {   // Rook's shield sends shots back
+  const r = boxRect(f, box);
+  for (const p of s.projectiles) {
+    if (p.team === f.team || !p.reflect || !overlap(projRect(p), r)) continue;
+    p.vx = -p.vx * 1.1; if (p.dir0) p.dir0 = -p.dir0;
+    p.team = f.team; p.owner = f.idx; p.hitSet = []; p.life = Math.max(p.life, 40);
+    ev(s, { t: 'block', x: p.x, y: p.y });
+  }
+}
 
 function updateProjectiles(s) {
-  const m = MAPS[s.map], plats = platsAt(m, s.tick), wb = m.world;
+  const m = MAPS[s.map], plats = platsAt(m, s.tick), wb = m.world, born = [];
   s.projectiles.forEach(p => {
     p.life--; p.age++;
-    if (p.type === 'boulder') p.vy += .45;
-    if (p.type === 'hexorb') {
-      let o = null, best = 1e9;
-      for (const e of s.fighters) {
-        if (e.team === p.team || e.state === 'ko' || e.gone) continue;
-        const d = Math.hypot(e.x - p.x, e.y - p.y);
-        if (d < best) { best = d; o = e; }
+    const owner = s.fighters[p.owner];
+    if (p.type === 'decoy') {   // Kitsu's decoy explodes when its time is up
+      if (p.life <= 0) {
+        ev(s, { t: 'boom', x: p.x, y: p.y - 40 });
+        for (const o of s.fighters) {
+          if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0) continue;
+          if (Math.hypot(o.x - p.x, (o.y - CHARS[o.c].h / 2) - (p.y - 40)) < 85)
+            applyHit(s, o, 9, (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
+        }
       }
-      if (o) {
-        const dx = o.x - p.x, dy = (o.y - CHARS[o.c].h / 2) - p.y, d = Math.hypot(dx, dy) || 1;
-        p.vx += dx / d * .14; p.vy += dy / d * .14;
-        const sp = Math.hypot(p.vx, p.vy);
-        if (sp > 3.4) { p.vx *= 3.4 / sp; p.vy *= 3.4 / sp; }
-      }
+      return;
+    }
+    if (p.type === 'magma') p.vy += .45;
+    if (p.type === 'raven') {   // flies out, slows down and comes back like a boomerang
+      p.vx -= p.dir0 * .26;
+      p.y = p.y0 + Math.sin(p.age * .22) * 10;
+      if (p.lastVx && Math.sign(p.vx) !== Math.sign(p.lastVx)) p.hitSet = [];
+      p.lastVx = p.vx;
+      if (owner && Math.sign(p.vx) === -p.dir0 && Math.abs(owner.x - p.x) < 24 && Math.abs(owner.y - CHARS[owner.c].h * .7 - p.y) < 60) p.life = 0;
+    }
+    if (p.type === 'wisp') {    // circles around Kitsu
+      if (!owner || owner.state === 'ko' || owner.gone) { p.life = 0; return; }
+      const a = p.a0 + p.age * .09;
+      p.x = owner.x + Math.cos(a) * 48; p.y = owner.y - CHARS[owner.c].h * .5 + Math.sin(a) * 36;
     }
     p.x += p.vx; p.y += p.vy;
     if (p.ground) {
       const pl = plats[p.plat];
-      if (!pl || p.x < pl.x || p.x > pl.x + pl.w) { p.life = 0; ev(s, { t: 'puff', x: p.x, y: p.y }); }
-      else { p.y = pl.y; if (p.type === 'wave' && s.tick % 4 === 0) ev(s, { t: 'puff', x: p.x, y: p.y, small: true }); }
+      if (!pl || p.x < pl.x - 2 || p.x > pl.x + pl.w + 2) { p.life = 0; if (p.vx) ev(s, { t: 'puff', x: p.x, y: p.y }); }
+      else { p.y = pl.y; if (pl.dx) p.x += pl.dx; if (p.type === 'wave' && s.tick % 4 === 0) ev(s, { t: 'puff', x: p.x, y: p.y, small: true }); }
     }
-    if (p.type === 'boulder' && p.vy > 0) {
-      for (const pl of plats) {
-        const bottom = p.y + p.h / 2;
-        if (p.x > pl.x && p.x < pl.x + pl.w && bottom >= pl.y && bottom - p.vy <= pl.y + 1) { p.life = 0; ev(s, { t: 'rock', x: p.x, y: pl.y }); break; }
+    if (p.type === 'magma' && p.vy > 0) {   // lands and leaves a burning pool
+      for (let k = 0; k < plats.length; k++) {
+        const pl = plats[k], bottom = p.y + p.h / 2;
+        if (p.x > pl.x && p.x < pl.x + pl.w && bottom >= pl.y && bottom - p.vy <= pl.y + 1) {
+          p.life = 0; ev(s, { t: 'splash', x: p.x, y: pl.y });
+          const px = pl.w < 90 ? pl.x + pl.w / 2 : Math.max(pl.x + 45, Math.min(pl.x + pl.w - 45, p.x));
+          born.push({ type: 'pool', ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 3, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
+          break;
+        }
       }
     }
-    if (p.type === 'strike') {
-      if (p.life === 8) ev(s, { t: 'bolt', x: p.x, y: p.y });
-      if (p.life > 8) return;   // still just a warning marker
+    if (p.type === 'harpoon' && p.life > 0 && owner && owner.state === 'skill' && owner.sk === 1 && !owner.onGround && !owner.zip) {
+      for (let k = 0; k < plats.length; k++) {   // hook a ledge and pull yourself up
+        const pl = plats[k];
+        if (overlap(projRect(p), { x: pl.x, y: pl.y - 6, w: pl.w, h: pl.solid ? 70 : 16 })) {
+          owner.zip = { x: Math.max(pl.x + 14, Math.min(pl.x + pl.w - 14, p.x)), y: pl.y };
+          p.life = 0; ev(s, { t: 'clang', x: p.x, y: p.y }); break;
+        }
+      }
     }
-    if (p.life > 0) {
+    if (p.tickEvery && p.age % p.tickEvery === 0) p.hitSet = [];
+    if (p.life > 0 && !p.harmless) {
       const r = projRect(p);
       for (const o of s.fighters) {
         if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0 || p.hitSet.includes(o.idx)) continue;
         if (!overlap(r, hurtRect(o))) continue;
-        const dir = p.type === 'strike' ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || 1);
-        applyHit(s, o, p.dmg, p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), o.x - dir * 10, { stun: p.stun, magic: p.magic });
         p.hitSet.push(o.idx);
+        if (p.chip) { chip(s, o, p.dmg); continue; }
+        const dir = p.radial ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || (owner ? owner.face : 1));
+        const res = applyHit(s, o, p.dmg, p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
+        if (p.type === 'harpoon' && res === 'hit' && owner) {   // reel the enemy in
+          o.vx = (owner.x >= o.x ? 1 : -1) * 9; o.vy = -4; o.hitstun = 26;
+          ev(s, { t: 'clang', x: o.x, y: o.y - 40 });
+        }
         if (!p.pierce) { p.life = 0; break; }
       }
     }
-    if (p.x < -100 || p.x > wb.w + 100 || p.y > wb.h + 150) p.life = 0;
+    if (p.x < -100 || p.x > wb.w + 100 || p.y > wb.h + 150 || p.y < -500) p.life = 0;
   });
-  s.projectiles = s.projectiles.filter(p => p.life > 0);
+  s.projectiles = s.projectiles.filter(p => p.life > 0).concat(born);
 }
 
 // ---------- the three extra attacks (Q/E/R) ----------
 function startSkill(s, f, C, k) {
-  f.state = 'skill'; f.sk = k; f.st = 0; f.hitSet = []; f.quaked = false; f.armor = false; f.noGrav = false;
+  f.state = 'skill'; f.sk = k; f.st = 0; f.hitSet = []; f.quaked = false; f.armor = false; f.noGrav = false; f.comboT = 0;
   f.cds[k] = C.skills[k].cd;
   if (C.skills[k].air && !f.onGround) f.airUsed[k] = true;
   SKILLS[C.id][k].start(f, s, C);
 }
-function endSkill(f) { f.noGrav = false; f.armor = false; f.sk = -1; setState(f, f.onGround ? 'idle' : 'air'); }
+function endSkill(f) { f.noGrav = false; f.armor = false; f.sk = -1; f.zip = null; setState(f, f.onGround ? 'idle' : 'air'); }
 function steer(f, inp, max, k) { f.vx += (dirOf(inp) * max - f.vx) * k; }
+function aimDir(f, inp, upBias) {   // the direction the player holds (falls back to forward)
+  let dx = dirOf(inp), dy = inp.up ? -1 : (inp.down ? 1 : 0);
+  if (f.onGround && dy > 0) dy = 0;
+  if (!dx && !dy) { dx = f.face; dy = upBias || 0; }
+  const l = Math.hypot(dx, dy);
+  if (dx) f.face = dx > 0 ? 1 : -1;
+  return [dx / l, dy / l];
+}
+function hover(f, k) { if (!f.onGround) f.vy *= k; }
 const noop = () => {};
 
 const SKILLS = {
-  bramble: [
-    { // Horn Charge
+  kitsu: [
+    { // Foxfire
       start: noop,
       update(f, s) {
-        const st = f.st;
-        if (st < 7) { f.vx *= .7; if (f.vy > 0) f.vy *= .5; }
-        else if (st < 23) {
-          f.noGrav = true; f.vx = f.face * 12.5; f.vy = 0;
-          hitEnemies(s, f, { x: 6, y: -80, w: 44, h: 62 }, 10, [9, -5]);
-          if (st % 3 === 0) ev(s, { t: 'dash', x: f.x - f.face * 20, y: f.y - 30 });
-        } else { f.noGrav = false; f.vx *= .82; if (st >= 34) endSkill(f); }
-      },
-    },
-    { // Scarf Twirl
-      start(f) { f.vy = -10; f.onGround = false; f.vx *= .5; },
-      update(f, s, inp) {
-        if (f.st < 22) {
-          f.noGrav = true; f.vy = -9 + f.st * .42; steer(f, inp, 3.5, .15);
-          if (f.st % 8 === 0) f.hitSet = [];
-          hitEnemies(s, f, { x: -30, y: -84, w: 60, h: 80 }, 3, [3, -8], { radial: true });
-        } else endSkill(f);
-      },
-    },
-    { // Thorn Uppercut
-      start: noop,
-      update(f, s) {
-        const st = f.st;
-        if (st < 8) f.vx *= .6;
-        else if (st < 14) {
-          if (st === 8 && f.onGround) { f.vy = -5; f.onGround = false; }
-          hitEnemies(s, f, { x: 0, y: -122, w: 48, h: 112 }, 9, [2, -11]);
+        if (f.st < 12) hover(f, .6);
+        if (f.st === 8) {
+          s.projectiles = s.projectiles.filter(p => !(p.type === 'wisp' && p.owner === f.idx));
+          for (let k = 0; k < 3; k++) spawnProj(s, f, { type: 'wisp', a0: k * TAU / 3, x: f.x, y: f.y, vx: 0, vy: 0, w: 20, h: 20, dmg: 4, kb: [4, -4], life: 240, magic: true, radial: true });
         }
-        if (st >= 30) endSkill(f);
+        if (f.st >= 16) endSkill(f);
       },
     },
-  ],
-  pip: [
-    { // Feather Shot
-      start: noop,
-      update(f, s) {
-        if (!f.onGround && f.st < 10) f.vy *= .6;
-        if (f.st === 7) spawnProj(s, f, { type: 'feather', x: f.x + f.face * 22, y: f.y - 30, vx: f.face * 10, vy: 0, w: 24, h: 14, dmg: 6, kb: [4, -3], life: 70 });
-        if (f.onGround) f.vx *= .8;
-        if (f.st >= 20) endSkill(f);
-      },
-    },
-    { // Updraft
-      start(f) { f.vy = -13.5; f.onGround = false; },
+    { // Tail Vault
+      start(f) { f.vy = -12.5; f.onGround = false; },
       update(f, s, inp) {
-        steer(f, inp, 4, .12);
-        if (f.st < 14) hitEnemies(s, f, { x: -22, y: -64, w: 44, h: 56 }, 3, [1, -7], { radial: true });
+        if (f.st === 0) f.vx = (dirOf(inp) || -f.face) * 3.5;   // backflip, or the way you hold
+        if (f.st < 20) hitEnemies(s, f, { x: -44, y: -84, w: 70, h: 84 }, 5, [5, -6], { radial: true });
         else endSkill(f);
       },
     },
-    { // Dive Bomb
-      start(f) { if (f.onGround) { f.vy = -7; f.onGround = false; } },
-      update(f, s) {
-        const st = f.st;
-        if (st < 6) { f.vy *= .5; f.vx *= .5; return; }
-        f.noGrav = true; f.vx = f.face * 8; f.vy = 7;
-        if (hitEnemies(s, f, { x: 4, y: -50, w: 40, h: 46 }, 8, [6, -5])) { f.vy = -7; f.vx = -f.face * 2; endSkill(f); return; }
-        if ((f.onGround && st > 8) || st >= 40) { if (f.onGround) ev(s, { t: 'land', x: f.x, y: f.y }); endSkill(f); }
+    { // Mirage
+      start(f, s) {
+        f.inv = Math.max(f.inv, 16);
+        spawnProj(s, f, { type: 'decoy', x: f.x, y: f.y, vx: 0, vy: 0, w: 10, h: 10, harmless: true, life: 70, c: f.c, face: f.face });
+        ev(s, { t: 'tele', x: f.x, y: f.y - 40 });
+      },
+      update(f) {
+        if (f.st < 10) { f.noGrav = true; f.vy = 0; f.vx = f.face * 17; }
+        else { f.noGrav = false; f.vx *= .8; if (f.st >= 18) endSkill(f); }
       },
     },
   ],
-  grimjaw: [
-    { // Earthquake
-      start(f) { f.spAir = !f.onGround; f.armor = true; },
+  rook: [
+    { // Rocket Fist
+      start: noop,
       update(f, s) {
-        const st = f.st;
-        if (!f.quaked) {
-          if (f.spAir) {
-            if (st < 10) { f.vx *= .8; f.vy = -1; }
-            else { f.vy = 17; f.vx *= .92; if (f.onGround) quake(f, s); }
-            if (st > 120) endSkill(f);
-          } else { f.vx *= .7; if (st >= 22) quake(f, s); }
-        } else if (st >= f.endAt) endSkill(f);
+        f.vx *= .7; if (f.st < 10) hover(f, .6);
+        if (f.st === 8) spawnProj(s, f, { type: 'fist', x: f.x + f.face * 30, y: f.y - 48, vx: f.face * 13, vy: 0, w: 28, h: 20, dmg: 8, kb: [8, -4], life: 48, reflect: true });
+        if (f.st >= 22) endSkill(f);
       },
     },
-    { // Titan Leap
-      start(f) { f.vy = -14; f.vx = f.face * 4.5; f.onGround = false; },
-      update(f, s) {
-        if (!f.quaked) {
-          if (f.vy > 0) f.vy = Math.min(f.vy + .5, 16);
-          if (f.onGround && f.st > 6) {
-            f.quaked = true; f.endAt = f.st + 16;
-            hitEnemies(s, f, { x: -64, y: -50, w: 128, h: 50 }, 11, [6, -8], { radial: true });
-            ev(s, { t: 'quake', x: f.x, y: f.y, small: true });
-          }
-          if (f.st > 150) endSkill(f);
-        } else if (f.st >= f.endAt) endSkill(f);
+    { // Jet Boost
+      start(f) { f.vy = Math.min(f.vy, -3); f.onGround = false; },
+      update(f, s, inp) {
+        if (f.st < 36) {
+          f.noGrav = true; f.vy = Math.max(f.vy - .85, -8); steer(f, inp, 4.5, .15);
+          hitEnemies(s, f, { x: -22, y: -10, w: 44, h: 36 }, 4, [2, -4], { radial: true });
+          if (f.st % 2 === 0) ev(s, { t: 'jet', x: f.x - f.face * 18, y: f.y - 36 });
+        } else endSkill(f);
       },
     },
-    { // Boulder Toss
+    { // Shield Bash
+      start(f) { f.armor = true; },
+      update(f, s) {
+        hover(f, .5);
+        if (f.st < 5) f.vx *= .5;
+        else if (f.st < 19) {
+          f.vx = f.face * 10;
+          hitEnemies(s, f, { x: 8, y: -74, w: 40, h: 74 }, 8, [9, -5]);
+          reflectShots(s, f, { x: 4, y: -84, w: 48, h: 84 });
+        } else { f.armor = false; f.vx *= .8; if (f.st >= 30) endSkill(f); }
+      },
+    },
+  ],
+  magmor: [
+    { // Magma Toss
       start(f) { f.armor = true; },
       update(f, s) {
         f.vx *= .7;
-        if (f.st === 16) {
+        if (f.st === 14) {
           f.armor = false;
-          spawnProj(s, f, { type: 'boulder', x: f.x + f.face * 30, y: f.y - 120, vx: f.face * 7, vy: -7, w: 32, h: 32, dmg: 13, kb: [7, -6], life: 150 });
+          spawnProj(s, f, { type: 'magma', x: f.x + f.face * 30, y: f.y - 120, vx: f.face * 6.5, vy: -8, w: 24, h: 24, dmg: 8, kb: [5, -5], life: 150, reflect: true, magic: true });
         }
-        if (f.st >= 34) endSkill(f);
+        if (f.st >= 30) endSkill(f);
+      },
+    },
+    { // Eruption
+      start(f, s) {
+        spawnProj(s, f, { type: 'pillar', anchor: 'bottom', x: f.x, y: f.y, vx: 0, vy: 0, w: 54, h: 140, dmg: 9, kb: [2, -10], radial: true, pierce: true, life: 24, magic: true });
+        f.vy = -14.5; f.onGround = false;
+        ev(s, { t: 'quake', x: f.x, y: f.y, small: true });
+      },
+      update(f, s, inp) { steer(f, inp, 3, .08); if (f.st >= 18) endSkill(f); },
+    },
+    { // Molten Core
+      start: noop,
+      update(f, s) {
+        f.vx *= .6;
+        if (f.st === 12) { f.moltenT = 240; ev(s, { t: 'flare', x: f.x, y: f.y - 60 }); }
+        if (f.st >= 20) endSkill(f);
+      },
+    },
+  ],
+  morwen: [
+    { // Raven Call
+      start: noop,
+      update(f, s) {
+        if (f.st < 12) hover(f, .6);
+        if (f.st === 9) spawnProj(s, f, { type: 'raven', x: f.x + f.face * 24, y: f.y - 80, y0: f.y - 80, dir0: f.face, vx: f.face * 9, vy: 0, w: 30, h: 22, dmg: 5, kb: [4, -3], life: 80, pierce: true, reflect: true, magic: true });
+        if (f.st >= 20) endSkill(f);
+      },
+    },
+    { // Broom Ride
+      start: noop,
+      update(f, s, inp) {
+        if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, -.5); f.onGround = false; }
+        if (f.st <= 30) {
+          f.noGrav = true; f.vx = f.bdx * 8.5; f.vy = f.bdy * 8.5;
+          hitEnemies(s, f, { x: 0, y: -74, w: 42, h: 64 }, 6, [6, -4]);
+        } else endSkill(f);
+      },
+    },
+    { // Hex Circle
+      start: noop,
+      update(f, s) {
+        f.vx *= .6;
+        if (f.st === 12) {
+          s.projectiles = s.projectiles.filter(p => !(p.type === 'rune' && p.owner === f.idx));
+          spawnProj(s, f, { type: 'rune', anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 15, life: 240 });
+        }
+        if (f.st >= 22) endSkill(f);
       },
     },
   ],
@@ -558,10 +638,10 @@ const SKILLS = {
     { // Shadow Snare
       start: noop,
       update(f, s) {
-        if (!f.onGround) f.vy *= .6;
+        hover(f, .6);
         if (f.st === 12) {
           if (f.onGround) spawnProj(s, f, { type: 'snare', ground: true, plat: f.plat, x: f.x + f.face * 30, y: f.y, vx: f.face * 5.5, vy: 0, w: 44, h: 26, dmg: 4, kb: [0, -1], stun: 55, life: 70, magic: true });
-          else spawnProj(s, f, { type: 'snare', x: f.x + f.face * 30, y: f.y - 50, vx: f.face * 6, vy: 2, w: 30, h: 24, dmg: 4, kb: [0, -1], stun: 55, life: 70, magic: true });
+          else spawnProj(s, f, { type: 'snare', x: f.x + f.face * 30, y: f.y - 50, vx: f.face * 6, vy: 2, w: 30, h: 24, dmg: 4, kb: [0, -1], stun: 55, life: 70, magic: true, reflect: true });
         }
         if (f.st >= 24) endSkill(f);
       },
@@ -569,21 +649,16 @@ const SKILLS = {
     { // Shadow Step
       start(f) { f.inv = Math.max(f.inv, 22); },
       update(f, s, inp) {
-        const st = f.st;
         f.noGrav = true; f.vx *= .6; f.vy *= .5;
-        if (st === 10) {
-          let dx = dirOf(inp), dy = inp.up ? -1 : (inp.down ? 1 : 0);
-          if (f.onGround && dy > 0) dy = 0;
-          if (!dx && !dy) dx = f.face;
-          const len = Math.hypot(dx, dy), dist = 170, wb = MAPS[s.map].world;
+        if (f.st === 10) {
+          const [dx, dy] = aimDir(f, inp, 0), wb = MAPS[s.map].world;
           ev(s, { t: 'tele', x: f.x, y: f.y - 55 });
-          f.x = Math.max(20, Math.min(wb.w - 20, f.x + dx / len * dist));
-          f.y += dy / len * dist * .8;
-          if (dx) f.face = dx > 0 ? 1 : -1;
+          f.x = Math.max(20, Math.min(wb.w - 20, f.x + dx * 170));
+          f.y += dy * 136;
           f.onGround = false; f.vy = 0;
           ev(s, { t: 'tele', x: f.x, y: f.y - 55 });
         }
-        if (st >= 22) endSkill(f);
+        if (f.st >= 22) endSkill(f);
       },
     },
     { // Reaper Spin
@@ -607,8 +682,8 @@ const SKILLS = {
     { // Prism Bolt
       start: noop,
       update(f, s) {
-        if (!f.onGround && f.st < 10) f.vy *= .6;
-        if (f.st === 9) spawnProj(s, f, { type: 'prism', x: f.x + f.face * 40, y: f.y - 76, vx: f.face * 12, vy: 0, w: 44, h: 12, dmg: 7, kb: [5, -2], life: 60, magic: true });
+        if (f.st < 10) hover(f, .6);
+        if (f.st === 9) spawnProj(s, f, { type: 'prism', x: f.x + f.face * 40, y: f.y - 76, vx: f.face * 12, vy: 0, w: 44, h: 12, dmg: 7, kb: [5, -2], life: 60, magic: true, reflect: true });
         if (f.onGround) f.vx *= .8;
         if (f.st >= 22) endSkill(f);
       },
@@ -631,45 +706,84 @@ const SKILLS = {
       },
     },
   ],
-  vex: [
-    { // Chain Lightning
+  sable: [
+    { // Shuriken Fan
       start: noop,
       update(f, s) {
-        if (!f.onGround) f.vy *= .7;
-        f.vx *= .8;
-        if (f.st === 12) {
-          const o = nearestEnemy(s, f);
-          spawnProj(s, f, { type: 'strike', x: o ? o.x : f.x + f.face * 200, y: o ? o.y : f.y, vx: 0, vy: 0, w: 44, h: 320, dmg: 12, kb: [3, -9], life: 36, pierce: true, magic: true });
-        }
-        if (f.st >= 26) endSkill(f);
+        if (f.st < 10) hover(f, .5);
+        if (f.st === 6) for (const a of [-.22, 0, .22]) spawnProj(s, f, { type: 'shuriken', x: f.x + f.face * 16, y: f.y - 56, vx: f.face * 11 * Math.cos(a), vy: 11 * Math.sin(a), w: 16, h: 16, dmg: 4, kb: [3, -2], life: 45, reflect: true });
+        if (f.st >= 16) endSkill(f);
       },
     },
-    { // Storm Lift
-      start(f) { f.vy = -12; f.onGround = false; },
+    { // Shadow Dash
+      start(f) { f.inv = Math.max(f.inv, 14); },
       update(f, s, inp) {
-        if (f.st < 16) {
-          f.noGrav = true; f.vy = -11 + f.st * .3; steer(f, inp, 3.5, .15);
-          hitEnemies(s, f, { x: -22, y: -110, w: 44, h: 110 }, 6, [2, -8], { radial: true, magic: true });
-          if (f.st % 3 === 0) ev(s, { t: 'zap', x: f.x, y: f.y - 20 });
-        } else endSkill(f);
+        if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, 0); f.onGround = f.onGround && f.bdy >= 0; }
+        if (f.st < 12) {
+          f.noGrav = true; f.vx = f.bdx * 13; f.vy = f.bdy * 13;
+          hitEnemies(s, f, { x: -20, y: -80, w: 60, h: 80 }, 7, [5, -4]);
+          if (f.st % 2 === 0) ev(s, { t: 'tele', x: f.x, y: f.y - 40, small: true });
+        } else {
+          if (f.st === 12) { f.vx *= .4; f.vy *= .3; }
+          f.noGrav = false;
+          if (f.st >= 16) endSkill(f);
+        }
       },
     },
-    { // Hex Orb
+    { // Smoke Bomb
       start: noop,
       update(f, s) {
-        if (!f.onGround) f.vy *= .7;
-        if (f.st === 10) spawnProj(s, f, { type: 'hexorb', x: f.x + f.face * 30, y: f.y - 62, vx: f.face * 2.5, vy: -.5, w: 26, h: 26, dmg: 8, kb: [4, -5], life: 260, magic: true });
-        if (f.st >= 20) endSkill(f);
+        if (f.st === 4) {
+          spawnProj(s, f, { type: 'smoke', anchor: 'bottom', x: f.x, y: f.y, vx: 0, vy: 0, w: 150, h: 120, harmless: true, life: 120 });
+          f.stealthT = 240;
+          ev(s, { t: 'smoke', x: f.x, y: f.y - 40 });
+        }
+        if (f.st >= 12) endSkill(f);
+      },
+    },
+  ],
+  tusk: [
+    { // Belly Slide
+      start: noop,
+      update(f, s) {
+        const st = f.st;
+        if (st < 6) f.vx *= .7;
+        else if (st < 36) {
+          f.vx = f.face * (11 - (st - 6) * .2);
+          if (!f.onGround) f.vy = Math.max(f.vy, 3);
+          hitEnemies(s, f, { x: -10, y: -44, w: 74, h: 44 }, 8, [7, -6]);
+          if (st % 4 === 0 && f.onGround) ev(s, { t: 'dash', x: f.x - f.face * 20, y: f.y - 6 });
+        } else { f.vx *= .85; if (st >= 46) endSkill(f); }
+      },
+    },
+    { // Harpoon Hook
+      start: noop,
+      update(f, s, inp) {
+        if (f.zip) {   // pulling ourselves to a ledge
+          f.noGrav = true;
+          const dx = f.zip.x - f.x, dy = (f.zip.y - 1) - f.y, d = Math.hypot(dx, dy);
+          if (d < 16) { f.x = f.zip.x; f.y = f.zip.y - 1; f.vx = 0; f.vy = 0; endSkill(f); }
+          else { f.vx = dx / d * 15; f.vy = dy / d * 15; }
+          return;
+        }
+        f.vx *= .7; if (f.st < 20) hover(f, .7);
+        if (f.st === 8) {
+          const a = inp.up ? -.75 : 0;
+          spawnProj(s, f, { type: 'harpoon', x: f.x + f.face * 30, y: f.y - 62, vx: f.face * 14 * Math.cos(a), vy: 14 * Math.sin(a), w: 26, h: 12, dmg: 6, kb: [0, -2], life: 24 });
+        }
+        if (f.st >= 34) endSkill(f);
+      },
+    },
+    { // Winter Horn
+      start: noop,
+      update(f, s) {
+        f.vx *= .6;
+        if (f.st === 14) {
+          ev(s, { t: 'frost', x: f.x, y: f.y - 50 });
+          hitEnemies(s, f, { x: -140, y: -150, w: 280, h: 160 }, 4, [11, -7], { radial: true });
+        }
+        if (f.st >= 32) endSkill(f);
       },
     },
   ],
 };
-
-function quake(f, s) {
-  f.quaked = true; f.endAt = f.st + 22; f.armor = false;
-  ev(s, { t: 'quake', x: f.x, y: f.y });
-  for (const d of [-1, 1]) {
-    spawnProj(s, f, { type: 'wave', ground: true, plat: f.plat, x: f.x + d * 34, y: f.y, vx: d * 7, vy: 0, w: 34, h: 34, dmg: 12, kb: [6, -8], life: 60 });
-  }
-  hitEnemies(s, f, { x: -70, y: -36, w: 140, h: 36 }, 8, [5, -7], { radial: true });
-}

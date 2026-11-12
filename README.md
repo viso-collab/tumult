@@ -19,18 +19,22 @@ Spil det her: https://viso-collab.github.io/tumult/
 | Slag (tryk 3 gange for combo) | F | K | X |
 | Ekstra angreb | Q, E, R | U, I, O | Y, B, RB |
 
-Slag-knappen giver lille, lille og så stort slag. Efter det store slag er der en kort pause, så man ikke kan spamme. Hver af de 3 ekstra angreb har sin egen nedkøling.
+Slag-knappen giver lille, lille og så stort slag. Man må gerne vente lidt (ca. ⅔ sekund) mellem slagene, så fortsætter combo'en alligevel. Efter det store slag er der en kort pause, så man ikke kan spamme. Hver af de 3 ekstra angreb har sin egen nedkøling.
 
 ## Figurer
 
-| Figur | Type | Ekstra angreb |
+| Figur | Type | Q / E / R |
 |---|---|---|
-| Bramble | Nuttet slagsbror | Horn Charge, Scarf Twirl, Thorn Uppercut |
-| Pip | Lille, hurtig fugl | Feather Shot, Updraft, Dive Bomb |
-| Grimjaw | Stort troldmonster med armor | Earthquake, Titan Leap, Boulder Toss |
+| Kitsu | Rævånd med 3 haler | Foxfire, Tail Vault, Mirage |
+| Rook | Lille urværksridder | Rocket Fist, Jet Boost, Shield Bash (sender skud tilbage) |
+| Magmor | Lavagolem | Magma Toss (brændende pøl), Eruption, Molten Core |
+| Morwen | Ravneheks | Raven Call (boomerang), Broom Ride, Hex Circle |
 | Nightweaver | Svævende skygge | Shadow Snare, Shadow Step, Reaper Spin |
 | Lumina | Lysmagiker | Prism Bolt, Wings of Light, Mend |
-| Vex | Stormtroldmand | Chain Lightning, Storm Lift, Hex Orb |
+| Sable | Ninjakat | Shuriken Fan, Shadow Dash, Smoke Bomb |
+| Tusk | Hvalros-viking | Belly Slide, Harpoon Hook (træk fjender ind eller hag dig fast i en kant), Winter Horn |
+
+Ingen angreb sigter automatisk. Alt rammer der, hvor spilleren sigter.
 
 ## Kør lokalt
 
