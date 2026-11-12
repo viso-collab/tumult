@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="da">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,30 +15,35 @@
 
   <div id="menu" class="overlay">
     <h1>TUMULT</h1>
-    <p class="tag">Platform-kampspil for 2 spillere</p>
+    <p class="tag">A platform fighter for 2–4 players</p>
+
+    <div class="modes" role="group" aria-label="Game mode">
+      <button data-mode="1v1" aria-pressed="true">1 VS 1</button>
+      <button data-mode="2v2" aria-pressed="false">2 VS 2</button>
+    </div>
 
     <div class="buttons">
-      <button id="btn-local">2 spillere på samme computer</button>
-      <button id="btn-host">Online: opret spil</button>
+      <button id="btn-local">Play on this computer</button>
+      <button id="btn-host">Online: host a game</button>
       <div class="join">
-        <input id="join-code" maxlength="4" placeholder="KODE" autocomplete="off" spellcheck="false">
-        <button id="btn-join">Online: deltag</button>
+        <input id="join-code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Game code">
+        <button id="btn-join">Online: join</button>
       </div>
     </div>
     <p id="status" role="status"></p>
 
     <div class="help">
       <div>
-        <h3>Spiller 1</h3>
-        <p>A / D: gå<br>W: hop (flere gange i luften)<br>S: blokér<br>S + W: hop ned gennem platform<br>F: slag · G: special</p>
+        <h3>Player 1</h3>
+        <p>A / D: move · W: jump<br>S: block · S + W: drop down<br>F: attack (press 3× for a combo)<br>Q · E · R: extra attacks</p>
       </div>
       <div>
-        <h3>Spiller 2</h3>
-        <p>← / →: gå<br>↑: hop<br>↓: blokér<br>↓ + ↑: hop ned gennem platform<br>K: slag · L: special</p>
+        <h3>Player 2</h3>
+        <p>← / →: move · ↑: jump<br>↓: block · ↓ + ↑: drop down<br>K: attack (press 3× for a combo)<br>U · I · O: extra attacks</p>
       </div>
       <div>
-        <h3>Godt at vide</h3>
-        <p>Online kan du bruge begge sæt taster. En controller virker også: A hop, X slag, B special. Esc går tilbage til menuen.</p>
+        <h3>Good to know</h3>
+        <p>2 vs 2: players 3 and 4 use controllers. Empty spots are played by the CPU. Online, up to 4 people can join with the code. Esc returns to this menu.</p>
       </div>
     </div>
   </div>
@@ -48,6 +53,7 @@
 <script src="js/characters.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/game.js"></script>
+<script src="js/ai.js"></script>
 <script src="js/render.js"></script>
 <script src="js/input.js"></script>
 <script src="js/net.js"></script>

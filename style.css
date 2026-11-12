@@ -48,6 +48,15 @@ h1 {
   text-shadow: 0 6px 0 #1a1426;
 }
 .tag { margin: 0 0 8px; color: var(--muted); font-size: 18px; }
+.modes { display: flex; gap: 8px; }
+.modes button {
+  font-family: 'Bungee', Impact, sans-serif;
+  font-weight: 400;
+  background: #2a2650;
+  color: var(--muted);
+  padding: 8px 18px;
+}
+.modes button[aria-pressed="true"] { background: var(--p1); color: #1a1426; }
 .buttons { display: flex; flex-direction: column; gap: 10px; width: min(420px, 90%); }
 button {
   font: 500 17px 'Rubik', system-ui, sans-serif;

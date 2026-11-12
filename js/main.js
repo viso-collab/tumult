@@ -1,4 +1,4 @@
-// main.js — menuen og hovedløkken.
+// main.js — menu and main loop.
 const cv = document.getElementById('game');
 const ctx = cv.getContext('2d');
 const menu = document.getElementById('menu');
@@ -6,10 +6,11 @@ const statusEl = document.getElementById('status');
 const codeInput = document.getElementById('join-code');
 
 let MODE = null;      // null | 'local' | 'host' | 'guest'
-let MY = -1;          // hvilken spiller du er online (0 = vært, 1 = gæst)
-let state = null;     // spillets tilstand (lokalt eller hos værten)
-let view = null;      // det der tegnes (hos gæsten: sidste tilstand fra værten)
-let remoteIn = {};
+let GAME_MODE = '1v1';
+let MY = -1;          // which slot you are online
+let state = null;     // game state (local or on the host)
+let view = null;      // what gets drawn (for guests: latest state from the host)
+const remoteIn = {};
 let acc = 0, last = performance.now();
 
 function setStatus(html) { statusEl.innerHTML = html; }
@@ -21,36 +22,54 @@ function showMenu(msg) {
 function hideMenu() { menu.hidden = true; }
 function errText(e) {
   const t = e && e.type;
-  if (t === 'peer-unavailable') return 'Fandt ikke noget spil med den kode. Tjek koden og prøv igen.';
-  if (t === 'peerjs-missing') return 'PeerJS kunne ikke hentes. Tjek internetforbindelsen.';
-  if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') return 'Kunne ikke nå PeerJS-serveren. Tjek internetforbindelsen.';
-  if (t === 'browser-incompatible') return 'Din browser understøtter ikke online-spil. Prøv Chrome eller Firefox.';
-  return 'Noget gik galt: ' + (t || e);
+  if (t === 'peer-unavailable') return 'No game found with that code. Check it and try again.';
+  if (t === 'full') return 'That game is full.';
+  if (t === 'peerjs-missing') return 'Could not load PeerJS. Check your internet connection.';
+  if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') return 'Could not reach the PeerJS server. Check your internet connection.';
+  if (t === 'browser-incompatible') return 'Your browser does not support online play. Try Chrome or Firefox.';
+  return 'Something went wrong: ' + (t || e);
 }
+
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+  GAME_MODE = b.dataset.mode;
+  document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+}));
 
 document.getElementById('btn-local').onclick = () => {
   Net.close();
-  MODE = 'local'; MY = -1; state = newState(); view = state; hideMenu();
+  MODE = 'local'; MY = -1; state = newState(GAME_MODE, false); view = state;
+  for (let i = 2; i < state.players.length; i++) setCpu(state, i, true);
+  hideMenu();
 };
 document.getElementById('btn-host').onclick = () => {
-  setStatus('Opretter spil…');
+  setStatus('Creating game…');
   Net.host({
-    status: code => setStatus(`Din kode er <b>${code}</b>. Giv den til din ven og vent her.`),
-    connected: () => { MODE = 'host'; MY = 0; state = newState(); view = state; remoteIn = {}; hideMenu(); },
-    input: i => { remoteIn = i; },
-    closed: () => showMenu('Forbindelsen til din ven blev afbrudt.'),
-    error: e => setStatus(errText(e)),
+    status: code => {
+      MODE = 'host'; MY = 0; state = newState(GAME_MODE, true); state.code = code; view = state;
+      for (let i = 1; i < state.players.length; i++) setCpu(state, i, true);
+      hideMenu();
+    },
+    join: () => {
+      if (!state) return -1;
+      const slot = state.players.findIndex((p, i) => i > 0 && p.cpu);
+      if (slot < 0) return -1;
+      setCpu(state, slot, false);
+      return slot;
+    },
+    input: (slot, i) => { remoteIn[slot] = i; },
+    leave: slot => { if (state) { setCpu(state, slot, true); delete remoteIn[slot]; } },
+    error: e => { if (MODE === 'host') showMenu(errText(e)); else setStatus(errText(e)); },
   });
 };
 function join() {
   const code = codeInput.value.trim().toUpperCase();
-  if (code.length !== 4) { setStatus('Skriv den kode på 4 bogstaver, som din ven har fået.'); return; }
-  setStatus('Forbinder…');
+  if (code.length !== 4) { setStatus('Type the 4-letter code your friend got.'); return; }
+  setStatus('Connecting…');
   Net.join(code, {
-    connected: () => { MODE = 'guest'; MY = 1; view = null; hideMenu(); },
+    hello: slot => { MODE = 'guest'; MY = slot; view = null; hideMenu(); },
     state: s => { view = s; spawnFx(s.events); },
-    closed: () => showMenu('Forbindelsen til værten blev afbrudt.'),
-    error: e => setStatus(errText(e)),
+    closed: () => showMenu('Lost the connection to the host.'),
+    error: e => { if (MODE === 'guest') showMenu(errText(e)); else setStatus(errText(e)); },
   });
 }
 document.getElementById('btn-join').onclick = join;
@@ -58,29 +77,36 @@ codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
 addEventListener('keydown', e => { if (e.code === 'Escape' && MODE) showMenu(''); });
 
 function hints() {
-  if (MODE === 'local') return {
-    hint: 'Vælg: A/D/W/S eller pilene · Bekræft: F eller K · Fortryd: G eller L',
-    mapHint: 'Vælg med A/D eller ←/→ · Start: F eller K · Tilbage: G eller L',
-    again: 'Tryk F eller K for at spille igen',
-    labels: ['SPILLER 1', 'SPILLER 2'],
-  };
+  const local = MODE === 'local';
   return {
-    hint: 'Vælg med pilene eller WASD · Bekræft: F eller K · Fortryd: G eller L',
-    mapHint: 'Begge kan vælge · Start: F eller K · Tilbage: G eller L',
-    again: 'Tryk F eller K for at spille igen',
-    labels: MY === 0 ? ['DIG', 'DIN VEN'] : ['DIN VEN', 'DIG'],
+    mode: local ? 'local' : 'online', my: MY,
+    hint: local ? 'Move: WASD / arrows · Pick: F / K · Back: Q / U' : 'Move: WASD or arrows · Pick: F · Back: Q',
+    teamHint: local ? 'Press Q / U to switch team. Players 3 and 4 use controllers, otherwise CPU.' : 'Press Q to switch team. Empty spots are played by the CPU.',
+    mapHint: local ? 'Pick with A/D or ←/→ · Start: F / K · Back: Q / U' : 'Anyone can pick · Start: F · Back: Q',
+    again: local ? 'Press F or K to play again' : 'Press F to play again',
   };
+}
+
+function gather() {
+  return state.players.map((P, i) => {
+    if (P.cpu) return botInput(state, i);
+    if (MODE === 'local') return Input.slot(i);
+    if (i === 0) return Input.any();
+    return remoteIn[i] || {};
+  });
 }
 
 function frame(now) {
   let dt = (now - last) / 1000; last = now;
   if (dt > .25) dt = .25;
   if (MODE === 'local' || MODE === 'host') {
+    if (MODE === 'local' && state.screen === 'select') {
+      for (let i = 2; i < state.players.length; i++) setCpu(state, i, !Input.padConnected(i));
+    }
     acc += dt;
     let n = 0;
     while (acc >= 1 / 60 && n < 5) {
-      const ins = MODE === 'local' ? [Input.local(0), Input.local(1)] : [Input.any(), remoteIn];
-      step(state, ins);
+      step(state, gather());
       spawnFx(state.events);
       if (MODE === 'host') Net.send({ t: 's', s: snapshot(state) });
       acc -= 1 / 60; n++;
@@ -89,8 +115,8 @@ function frame(now) {
   } else if (MODE === 'guest') {
     Net.send({ t: 'i', i: Input.any() });
   }
-  const opts = hints(); opts.waiting = MODE === 'guest' && !view;
-  renderFrame(ctx, view, dt, opts);
+  const o = hints(); o.waiting = MODE === 'guest' && !view;
+  renderFrame(ctx, view, dt, o);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
