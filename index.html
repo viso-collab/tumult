@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tumult</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1920" height="1080"></canvas>
+
+  <div id="menu" class="overlay">
+    <h1>TUMULT</h1>
+    <p class="tag">Platform-kampspil for 2 spillere</p>
+
+    <div class="buttons">
+      <button id="btn-local">2 spillere på samme computer</button>
+      <button id="btn-host">Online: opret spil</button>
+      <div class="join">
+        <input id="join-code" maxlength="4" placeholder="KODE" autocomplete="off" spellcheck="false">
+        <button id="btn-join">Online: deltag</button>
+      </div>
+    </div>
+    <p id="status" role="status"></p>
+
+    <div class="help">
+      <div>
+        <h3>Spiller 1</h3>
+        <p>A / D: gå<br>W: hop (flere gange i luften)<br>S: blokér<br>S + W: hop ned gennem platform<br>F: slag · G: special</p>
+      </div>
+      <div>
+        <h3>Spiller 2</h3>
+        <p>← / →: gå<br>↑: hop<br>↓: blokér<br>↓ + ↑: hop ned gennem platform<br>K: slag · L: special</p>
+      </div>
+      <div>
+        <h3>Godt at vide</h3>
+        <p>Online kan du bruge begge sæt taster. En controller virker også: A hop, X slag, B special. Esc går tilbage til menuen.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="js/characters.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/input.js"></script>
+<script src="js/net.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
