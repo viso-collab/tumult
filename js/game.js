@@ -207,7 +207,7 @@ function updateFighters(s, I, P) {
       if (s.tick % 20 === 0) for (const o of s.fighters) {   // Molten Core: touching Magmor burns
         if (o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0) continue;
         const r = hurtRect(f), h = hurtRect(o);
-        if (overlap({ x: r.x - 14, y: r.y - 10, w: r.w + 28, h: r.h + 10 }, h)) chip(s, o, 3);
+        if (overlap({ x: r.x - 14, y: r.y - 10, w: r.w + 28, h: r.h + 10 }, h)) chip(s, o, 2);
       }
     }
     if (f.state === 'hurt') { f.hitstun--; if (f.hitstun <= 0) setState(f, f.onGround ? 'idle' : 'air'); }
@@ -453,7 +453,7 @@ function updateProjectiles(s) {
         if (p.x > pl.x && p.x < pl.x + pl.w && bottom >= pl.y && bottom - p.vy <= pl.y + 1) {
           p.life = 0; ev(s, { t: 'splash', x: p.x, y: pl.y });
           const px = pl.w < 90 ? pl.x + pl.w / 2 : Math.max(pl.x + 45, Math.min(pl.x + pl.w - 45, p.x));
-          born.push({ type: 'pool', ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 3, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
+          born.push({ type: 'pool', ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
           break;
         }
       }
@@ -581,14 +581,14 @@ const SKILLS = {
         f.vx *= .7;
         if (f.st === 14) {
           f.armor = false;
-          spawnProj(s, f, { type: 'magma', x: f.x + f.face * 30, y: f.y - 120, vx: f.face * 6.5, vy: -8, w: 24, h: 24, dmg: 8, kb: [5, -5], life: 150, reflect: true, magic: true });
+          spawnProj(s, f, { type: 'magma', x: f.x + f.face * 30, y: f.y - 120, vx: f.face * 6.5, vy: -8, w: 24, h: 24, dmg: 6, kb: [5, -5], life: 150, reflect: true, magic: true });
         }
         if (f.st >= 30) endSkill(f);
       },
     },
     { // Eruption
       start(f, s) {
-        spawnProj(s, f, { type: 'pillar', anchor: 'bottom', x: f.x, y: f.y, vx: 0, vy: 0, w: 54, h: 140, dmg: 9, kb: [2, -10], radial: true, pierce: true, life: 24, magic: true });
+        spawnProj(s, f, { type: 'pillar', anchor: 'bottom', x: f.x, y: f.y, vx: 0, vy: 0, w: 54, h: 140, dmg: 7, kb: [2, -10], radial: true, pierce: true, life: 24, magic: true });
         f.vy = -14.5; f.onGround = false;
         ev(s, { t: 'quake', x: f.x, y: f.y, small: true });
       },

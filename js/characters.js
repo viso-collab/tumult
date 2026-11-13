@@ -593,9 +593,9 @@ const CHARS = [
       fin: { f: [7, 5, 14], dmg: 8, kb: [6, -6], box: { x: -38, y: -90, w: 96, h: 86 }, anim: 'spin', cd: 28 },
     },
     skills: [
-      { name: 'Foxfire', desc: 'Three spirit flames circle around you.', cd: 150 },
+      { name: 'Foxfire', desc: 'Three spirit flames circle around you.', cd: 180 },
       { name: 'Tail Vault', desc: 'Backflip high into the air.', cd: 35, air: true },
-      { name: 'Mirage', desc: 'Leave a decoy that explodes and dash ahead.', cd: 110 },
+      { name: 'Mirage', desc: 'Leave a decoy that explodes and dash ahead.', cd: 150 },
     ],
     draw: drawKitsu,
     pose(p, f) {
@@ -616,9 +616,9 @@ const CHARS = [
       fin: { f: [10, 4, 16], dmg: 9, kb: [7, -6], box: { x: 6, y: -100, w: 52, h: 96 }, anim: 'slam', cd: 30 },
     },
     skills: [
-      { name: 'Rocket Fist', desc: 'Fire your fist straight ahead.', cd: 45 },
+      { name: 'Rocket Fist', desc: 'Fire your fist straight ahead.', cd: 100 },
       { name: 'Jet Boost', desc: 'Fly with your jetpack. Steer left and right.', cd: 50, air: true },
-      { name: 'Shield Bash', desc: 'Charge with your shield. Bounces shots back.', cd: 70 },
+      { name: 'Shield Bash', desc: 'Charge with your shield. Bounces shots back.', cd: 110 },
     ],
     draw: drawRook,
     pose(p, f) {
@@ -634,12 +634,12 @@ const CHARS = [
     reach: 6, shoulder: [14, -92], trail: '#ff8a3a',
     stats: { power: 5, speed: 1, jump: 2, magic: 3 },
     moves: {
-      jab1: { f: [6, 3, 11], dmg: 4, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [6, 3, 11], dmg: 4, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [14, 5, 20], dmg: 13, kb: [9, -6], box: { x: 10, y: -140, w: 78, h: 134 }, anim: 'slam', armor: true, cd: 34 },
+      jab1: { f: [6, 3, 11], dmg: 3, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [6, 3, 11], dmg: 3, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [14, 5, 20], dmg: 11, kb: [9, -6], box: { x: 10, y: -140, w: 78, h: 134 }, anim: 'slam', armor: true, cd: 34 },
     },
     skills: [
-      { name: 'Magma Toss', desc: 'Lob lava that leaves a burning pool.', cd: 80 },
+      { name: 'Magma Toss', desc: 'Lob lava that leaves a burning pool.', cd: 120 },
       { name: 'Eruption', desc: 'A fire pillar launches you upward.', cd: 55, air: true },
       { name: 'Molten Core', desc: 'Small hits cannot stop you, and touching you burns.', cd: 420 },
     ],
@@ -662,8 +662,8 @@ const CHARS = [
       fin: { f: [9, 5, 15], dmg: 8, kb: [7, -4], box: { x: 12, y: -100, w: 68, h: 66 }, anim: 'cast', cd: 30 },
     },
     skills: [
-      { name: 'Raven Call', desc: 'A raven flies out and comes back to you.', cd: 60 },
-      { name: 'Broom Ride', desc: 'Fly on your broom the way you hold.', cd: 55, air: true },
+      { name: 'Raven Call', desc: 'A raven flies out and comes back to you.', cd: 100 },
+      { name: 'Broom Ride', desc: 'Fly on your broom the way you hold.', cd: 90, air: true },
       { name: 'Hex Circle', desc: 'A rune circle that hurts enemies inside it.', cd: 260 },
     ],
     draw: drawMorwen,
@@ -685,8 +685,8 @@ const CHARS = [
       fin: { f: [8, 4, 14], dmg: 9, kb: [7, -4], box: { x: 8, y: -112, w: 78, h: 72 }, anim: 'headbutt', cd: 28 },
     },
     skills: [
-      { name: 'Shadow Snare', desc: 'A creeping shadow that roots enemies.', cd: 70 },
-      { name: 'Shadow Step', desc: 'Teleport the way you hold. Up works too.', cd: 55, air: true },
+      { name: 'Shadow Snare', desc: 'A creeping shadow that roots enemies.', cd: 110 },
+      { name: 'Shadow Step', desc: 'Teleport the way you hold. Up works too.', cd: 90, air: true },
       { name: 'Reaper Spin', desc: 'Whirl your claws, hitting many times.', cd: 80 },
     ],
     draw: drawNightweaver,
@@ -708,7 +708,7 @@ const CHARS = [
       fin: { f: [7, 5, 14], dmg: 8, kb: [6, -5], box: { x: -36, y: -108, w: 104, h: 100 }, anim: 'spin', cd: 30 },
     },
     skills: [
-      { name: 'Prism Bolt', desc: 'Fire a fast bolt of light.', cd: 35 },
+      { name: 'Prism Bolt', desc: 'Fire a fast bolt of light.', cd: 90 },
       { name: 'Wings of Light', desc: 'Rise on glowing wings.', cd: 40, air: true },
       { name: 'Mend', desc: 'Heal 15 HP. Long cooldown.', cd: 900 },
     ],
@@ -731,8 +731,8 @@ const CHARS = [
       fin: { f: [6, 5, 14], dmg: 8, kb: [3, -9], box: { x: 0, y: -124, w: 56, h: 110 }, anim: 'uppercut', cd: 26 },
     },
     skills: [
-      { name: 'Shuriken Fan', desc: 'Throw three stars in a fan.', cd: 45 },
-      { name: 'Shadow Dash', desc: 'Dash the way you hold, cutting through enemies.', cd: 45, air: true },
+      { name: 'Shuriken Fan', desc: 'Throw three stars in a fan.', cd: 100 },
+      { name: 'Shadow Dash', desc: 'Dash the way you hold, cutting through enemies.', cd: 100, air: true },
       { name: 'Smoke Bomb', desc: 'Vanish in smoke. Your next attack hits harder.', cd: 300 },
     ],
     draw: drawSable,
@@ -754,8 +754,8 @@ const CHARS = [
       fin: { f: [11, 5, 18], dmg: 11, kb: [8, -6], box: { x: 6, y: -124, w: 74, h: 120 }, anim: 'slam', cd: 32 },
     },
     skills: [
-      { name: 'Belly Slide', desc: 'Slide forward on your belly.', cd: 55 },
-      { name: 'Harpoon Hook', desc: 'Reel an enemy in, or hook a ledge. Hold up to aim up.', cd: 60, air: true },
+      { name: 'Belly Slide', desc: 'Slide forward on your belly.', cd: 100 },
+      { name: 'Harpoon Hook', desc: 'Reel an enemy in, or hook a ledge. Hold up to aim up.', cd: 110, air: true },
       { name: 'Winter Horn', desc: 'A mighty blast that pushes everyone away.', cd: 200 },
     ],
     draw: drawTusk,
