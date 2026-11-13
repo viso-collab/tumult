@@ -38,6 +38,14 @@ Slag-knappen giver lille, lille og så stort slag. Man må gerne vente lidt (ca.
 | Tempest | Stormharpy med 3 hop | Gust (skubber langt væk), Updraft, Thunderstrike (lyn et fast stykke foran dig) |
 | Mortis | Skeletkonge | Bone Spikes, Soul Leap, Soul Drain (stjæler liv) |
 | Truffle | Lille svampedruide | Spore Cloud (gift og langsomhed), Mushroom Spring, Vine Lash (lang pisk) |
+| Grizz | Bjørn-skovhugger | Axe Toss, Log Roll (små slag stopper ham ikke), Roar (lammer) |
+| Zapp | Goblin-opfinder | Tesla Mine (fælde), Rocket Jump, Shock Coil (elektrisk felt) |
+| Vesper | Vampyrgrevinde | Bat Swarm, Mist Form (kan ikke rammes), Blood Bite (heler) |
+| Scorch | Babydrage | Fire Breath, Flap, Fireball |
+| Selene | Månepræstinde | Starfall, Moon Jump (lav tyngdekraft), Lunar Shield (stopper ét slag) |
+| Fangor | Varulv | Howl (hurtigere og stærkere), Pounce, Rend |
+| Inky | Blæksprutte-pirat | Cannon Shot, Ink Jet, Tentacle Grab (trækker fjenden ind) |
+| Jinx | Ond gøgler | Juggling Pins, Balloon Ride, Jack-in-the-Box (fælde) |
 
 Ingen angreb sigter automatisk. Alt rammer der, hvor spilleren sigter.
 

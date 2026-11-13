@@ -15,6 +15,14 @@ const BOT_SKILLS = {
   tempest:     { far: [0, 2], near: [] },
   mortis:      { far: [0],    near: [2] },
   truffle:     { far: [0],    near: [2] },
+  grizz:       { far: [0],    near: [2] },
+  zapp:        { far: [0],    near: [0, 2] },
+  vesper:      { far: [0],    near: [2] },
+  scorch:      { far: [2],    near: [0] },
+  selene:      { far: [0],    near: [2] },
+  fangor:      { far: [0],    near: [2] },
+  inky:        { far: [0, 2], near: [] },
+  jinx:        { far: [0],    near: [2] },
 };
 
 function botInput(s, i) {

@@ -58,14 +58,16 @@ function step(s, inp) {
 }
 
 // ---------- menus ----------
-function gridCols(s) { return s.mode === '2v2' ? 6 : 4; }   // 1v1: 4x3 big cards, 2v2: 6x2 small cards
+function gridCols(s) { return s.mode === '2v2' ? 7 : 5; }   // 1v1: 5x4 cards, 2v2: 7x3 smaller cards
 function selectNav(pl, p, cols) {
   const N = CHARS.length, rows = Math.ceil(N / cols);
-  const col = pl.char % cols, row = Math.floor(pl.char / cols), fix = v => Math.min(N - 1, v);
-  if (p.left) pl.char = fix(row * cols + (col + cols - 1) % cols);
-  if (p.right) pl.char = fix(row * cols + (col + 1) % cols);
-  if (p.up) pl.char = fix(((row + rows - 1) % rows) * cols + col);
-  if (p.down) pl.char = fix(((row + 1) % rows) * cols + col);
+  const row = Math.floor(pl.char / cols), col = pl.char % cols, len = r => Math.min(cols, N - r * cols);
+  if (p.left) pl.char = row * cols + (col + len(row) - 1) % len(row);
+  if (p.right) pl.char = row * cols + (col + 1) % len(row);
+  if (p.up || p.down) {
+    const r = (row + (p.up ? rows - 1 : 1)) % rows;
+    pl.char = r * cols + Math.min(col, len(r) - 1);
+  }
 }
 function stepSelect(s, P) {
   const cols = gridCols(s);
@@ -132,6 +134,7 @@ function makeFighter(ci, i, team, sp, m) {
     glide: false, noGrav: false, armor: false, quaked: false, spAir: false, endAt: 0, gone: false,
     comboNext: null, comboT: 0, moltenT: 0, stealthT: 0, zip: null,
     slowT: 0, gulpT: 0, gulpBy: -1, fullT: 0, lastHit: '',
+    shieldT: 0, rageT: 0, coilT: 0, lowGT: 0, bitten: false,
   };
 }
 function startRound(s) {
@@ -222,6 +225,16 @@ function updateFighters(s, I, P) {
     if (f.stealthT > 0) f.stealthT--;
     if (f.slowT > 0) f.slowT--;
     if (f.fullT > 0) f.fullT--;
+    if (f.shieldT > 0) f.shieldT--;
+    if (f.rageT > 0) f.rageT--;
+    if (f.lowGT > 0) f.lowGT--;
+    if (f.coilT > 0) {
+      f.coilT--;
+      if (s.tick % 15 === 0) for (const o of s.fighters) {   // Shock Coil: enemies close by get zapped
+        if (o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0 || o.gulpT > 0) continue;
+        if (Math.abs(o.x - f.x) < 70 && Math.abs((o.y - CHARS[o.c].h / 2) - (f.y - CHARS[f.c].h / 2)) < 70) { chip(s, o, sp(3)); ev(s, { t: 'zap', x: o.x, y: o.y - CHARS[o.c].h / 2 }); }
+      }
+    }
     if (f.moltenT > 0) {
       f.moltenT--;
       if (s.tick % 20 === 0) for (const o of s.fighters) {   // Molten Core: touching Magmor burns
@@ -279,7 +292,7 @@ function control(s, f, C, inp, pr, plats) {
   }
   if (f.state === 'block') setState(f, 'idle');
 
-  const dir = dirOf(inp), spd = C.speed * (f.slowT > 0 ? .55 : 1);
+  const dir = dirOf(inp), spd = C.speed * (f.slowT > 0 ? .55 : 1) * (f.rageT > 0 ? 1.2 : 1);
   if (f.onGround) { f.vx += (dir * spd - f.vx) * .3; if (dir) f.face = dir; }   // keep facing the way you last walked
   else { f.vx += (dir * spd - f.vx) * .1; if (dir) f.face = dir; }
 
@@ -305,7 +318,7 @@ function updateAttack(s, f, C) {
   if (!mv) { setState(f, 'idle'); return; }
   const [S, A, R] = mv.f;
   f.vx *= f.onGround ? .8 : .97;
-  if (f.st >= S && f.st < S + A && hitEnemies(s, f, mv.box, mv.dmg + (f.stealthT > 0 ? 6 : 0), mv.kb)) f.stealthT = 0;
+  if (f.st >= S && f.st < S + A && hitEnemies(s, f, mv.box, mv.dmg + (f.stealthT > 0 ? 6 : 0) + (f.rageT > 0 ? 1 : 0), mv.kb)) f.stealthT = 0;
   if (mv.next && f.buf > 0 && f.st >= S + A) { startMove(f, mv.next); return; }   // continue the combo
   if (f.st >= S + A + R) {
     if (mv.next) { f.comboNext = mv.next; f.comboT = COMBO_WINDOW; }   // wait a moment and the combo continues
@@ -320,7 +333,7 @@ function physics(s, f, C, plats) {
   const was = f.onGround;
   if (was && plats[f.plat] && plats[f.plat].dx) f.x += plats[f.plat].dx;   // ride moving platforms
   if (!f.noGrav) {
-    f.vy = Math.min(f.vy + C.grav, C.maxFall);
+    f.vy = Math.min(f.vy + C.grav * (f.lowGT > 0 ? .45 : 1), C.maxFall * (f.lowGT > 0 ? .6 : 1));
     if (f.glide) f.vy = Math.min(f.vy, 1.4);
   }
   if (f.state === 'hurt' || f.state === 'ko') f.vx *= f.onGround ? .85 : .985;
@@ -411,6 +424,11 @@ function applyHit(s, o, dmg, kx, ky, hx, hy, fromX, opts) {
     ev(s, { t: 'block', x: hx, y: hy });
     return 'block';
   }
+  if (o.shieldT > 0) {   // Selene's Lunar Shield stops one hit from any side
+    o.shieldT = 0; o.hs = 3;
+    ev(s, { t: 'shield', x: hx, y: hy });
+    return 'block';
+  }
   if ((hasArmor(o) && dmg < 7) || (o.moltenT > 0 && dmg < 10)) {   // heavy attacks can't be interrupted by small hits
     o.hp = Math.max(0, o.hp - dmg); o.flash = 4; o.hs = 3;
     ev(s, { t: 'armor', x: hx, y: hy });
@@ -474,6 +492,8 @@ function updateProjectiles(s) {
     if (p.type === 'magma') p.vy += .45;
     if (p.type === 'goo') p.vy += .4;
     if (p.type === 'bone') p.vy += .12;
+    if (p.g) p.vy += p.g;
+    if (p.type === 'bats') p.y = p.y0 + Math.sin(p.age * .25) * 14;
     if (p.type === 'spore') { p.vx *= .985; p.y += Math.sin(p.age * .1) * .4; }
     if (p.type === 'raven') {   // flies out, slows down and comes back like a boomerang
       p.vx -= p.dir0 * .26;
@@ -493,14 +513,20 @@ function updateProjectiles(s) {
       if (!pl || p.x < pl.x - 2 || p.x > pl.x + pl.w + 2) { p.life = 0; if (p.vx) ev(s, { t: 'puff', x: p.x, y: p.y }); }
       else { p.y = pl.y; if (pl.dx) p.x += pl.dx; if ((p.type === 'wave' || p.type === 'spikes') && s.tick % 4 === 0) ev(s, { t: 'puff', x: p.x, y: p.y, small: true }); }
     }
-    if ((p.type === 'magma' || p.type === 'goo') && p.vy > 0) {   // lands and leaves a pool
+    if (p.drop && p.vy > 0) {   // a trap thrown in the air lands and sets itself up
+      for (let k = 0; k < plats.length; k++) {
+        const pl = plats[k];
+        if (p.x > pl.x && p.x < pl.x + pl.w && p.y >= pl.y && p.y - p.vy <= pl.y + 1) { p.drop = false; p.ground = true; p.plat = k; p.y = pl.y; p.vy = 0; p.g = 0; break; }
+      }
+    }
+    if ((p.type === 'magma' || p.type === 'goo' || p.type === 'ink') && p.vy > 0) {   // lands and leaves a pool
       for (let k = 0; k < plats.length; k++) {
         const pl = plats[k], bottom = p.y + p.h / 2;
         if (p.x > pl.x && p.x < pl.x + pl.w && bottom >= pl.y && bottom - p.vy <= pl.y + 1) {
-          const goo = p.type === 'goo';
+          const goo = p.type === 'goo' || p.type === 'ink';
           p.life = 0; ev(s, { t: goo ? 'goo' : 'splash', x: p.x, y: pl.y });
           const px = pl.w < 90 ? pl.x + pl.w / 2 : Math.max(pl.x + 45, Math.min(pl.x + pl.w - 45, p.x));
-          if (goo) born.push({ type: 'puddle', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 20, dmg: 0, chip: true, slow: true, pierce: true, tickEvery: 10, life: 240, owner: p.owner, team: p.team, age: 0, hitSet: [] });
+          if (goo) born.push({ type: 'puddle', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 20, dmg: 0, chip: true, slow: true, ink: p.type === 'ink', pierce: true, tickEvery: 10, life: 240, owner: p.owner, team: p.team, age: 0, hitSet: [] });
           else born.push({ type: 'pool', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
           break;
         }
@@ -516,7 +542,7 @@ function updateProjectiles(s) {
       }
     }
     if (p.tickEvery && p.age % p.tickEvery === 0) p.hitSet = [];
-    if (p.life > 0 && !p.harmless) {
+    if (p.life > 0 && !p.harmless && !(p.trap && p.age < p.armT)) {
       const r = projRect(p);
       for (const o of s.fighters) {
         if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0 || o.gulpT > 0 || p.hitSet.includes(o.idx)) continue;
@@ -528,6 +554,8 @@ function updateProjectiles(s) {
         if (p.chip) { if (p.dmg) chip(s, o, sp(p.dmg)); continue; }
         const dir = p.radial ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || (owner ? owner.face : 1));
         const res = applyHit(s, o, sp(p.dmg), p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
+        if (p.boom) ev(s, { t: 'boom', x: p.x, y: p.y - 10 });
+        if (p.type === 'jack') ev(s, { t: 'boing', x: p.x, y: p.y });
         if (p.type === 'harpoon' && res === 'hit' && owner) {   // reel the enemy in
           o.vx = (owner.x >= o.x ? 1 : -1) * 7; o.vy = -3; o.hitstun = 18;
           ev(s, { t: 'clang', x: o.x, y: o.y - 40 });
@@ -975,6 +1003,247 @@ const SKILLS = {
         f.vx *= .6; if (f.st < 20) hover(f, .6);
         if (f.st >= 8 && f.st < 13) hitEnemies(s, f, { x: 16, y: -66, w: 140, h: 40 }, 9, [8, -6], { single: true });
         if (f.st >= 26) endSkill(f);
+      },
+    },
+  ],
+  grizz: [
+    { // Axe Toss
+      start: noop,
+      update(f, s) {
+        f.vx *= .7; if (f.st < 14) hover(f, .6);
+        if (f.st === 12) spawnProj(s, f, { type: 'axe', x: f.x + f.face * 30, y: f.y - 96, vx: f.face * 7.5, vy: -6, g: .38, w: 26, h: 26, dmg: 8, kb: [6, -5], life: 100, reflect: true });
+        if (f.st >= 28) endSkill(f);
+      },
+    },
+    { // Log Roll
+      start(f) { f.armor = true; if (!f.onGround) f.vy = -7; },
+      update(f, s) {
+        if (f.st < 34) {
+          f.vx = f.face * 9;
+          if (!f.onGround) f.vy = Math.min(f.vy, 3);
+          hitEnemies(s, f, { x: -30, y: -64, w: 62, h: 64 }, 7, [7, -6], { single: true });
+          if (f.st % 4 === 0 && f.onGround) ev(s, { t: 'dash', x: f.x - f.face * 20, y: f.y - 6 });
+        } else { f.armor = false; f.vx *= .8; if (f.st >= 40) endSkill(f); }
+      },
+    },
+    { // Roar: a short blast that stuns one enemy
+      start: noop,
+      update(f, s) {
+        f.vx *= .6;
+        if (f.st === 14) {
+          ev(s, { t: 'roar', x: f.x + f.face * 40, y: f.y - 90 });
+          hitEnemies(s, f, { x: 0, y: -124, w: 124, h: 124 }, 3, [3, -2], { stun: 50, single: true });
+        }
+        if (f.st >= 34) endSkill(f);
+      },
+    },
+  ],
+  zapp: [
+    { // Tesla Mine (max 2 at a time)
+      start: noop,
+      update(f, s) {
+        f.vx *= .7;
+        if (f.st === 8) {
+          const mine = s.projectiles.filter(p => p.type === 'mine' && p.owner === f.idx);
+          if (mine.length >= 2) s.projectiles = s.projectiles.filter(p => p !== mine[0]);
+          const base = { type: 'mine', x: f.x + f.face * 30, vx: 0, w: 50, h: 22, dmg: 10, kb: [4, -8], radial: true, trap: true, armT: 20, boom: true, life: 480, magic: true };
+          if (f.onGround) spawnProj(s, f, Object.assign(base, { ground: true, plat: f.plat, y: f.y, vy: 0 }));
+          else spawnProj(s, f, Object.assign(base, { drop: true, y: f.y, vy: 1, g: .5 }));
+        }
+        if (f.st >= 18) endSkill(f);
+      },
+    },
+    { // Rocket Jump
+      start: noop,
+      update(f, s, inp) {
+        if (f.st === 0) {
+          const [dx, dy] = aimDir(f, inp, -1);
+          hitEnemies(s, f, { x: -40, y: -40, w: 80, h: 44 }, 6, [5, -6], { radial: true, single: true });
+          ev(s, { t: 'boom', x: f.x, y: f.y - 10 });
+          f.vx = dx * 8; f.vy = Math.min(dy * 12, -8); f.onGround = false;
+        }
+        steer(f, inp, 4, .06);
+        if (f.st >= 20) endSkill(f);
+      },
+    },
+    { // Shock Coil
+      start: noop,
+      update(f, s) {
+        f.vx *= .6; hover(f, .6);
+        if (f.st === 10) { f.coilT = 150; ev(s, { t: 'zap', x: f.x, y: f.y - 40 }); }
+        if (f.st >= 18) endSkill(f);
+      },
+    },
+  ],
+  vesper: [
+    { // Bat Swarm
+      start: noop,
+      update(f, s) {
+        if (f.st < 12) hover(f, .6);
+        if (f.st === 10) spawnProj(s, f, { type: 'bats', x: f.x + f.face * 30, y: f.y - 70, y0: f.y - 70, vx: f.face * 8, vy: 0, w: 40, h: 30, dmg: 6, kb: [4, -3], life: 60, pierce: true, magic: true });
+        if (f.st >= 22) endSkill(f);
+      },
+    },
+    { // Mist Form: float anywhere, nothing can hit you
+      start(f) { f.inv = Math.max(f.inv, 40); },
+      update(f, s, inp) {
+        if (f.st < 36) {
+          f.noGrav = true; f.onGround = false;
+          f.vx += (dirOf(inp) * 5 - f.vx) * .2;
+          f.vy += ((inp.up ? -4.5 : inp.down ? 4 : -.6) - f.vy) * .2;
+          if (f.st % 3 === 0) ev(s, { t: 'mist', x: f.x, y: f.y - 50 });
+        } else endSkill(f);
+      },
+    },
+    { // Blood Bite
+      start(f) { f.bitten = false; },
+      update(f, s, inp, C) {
+        if (f.st < 6) f.vx *= .6;
+        else if (f.st < 14) {
+          f.vx = f.face * 8;
+          if (hitEnemies(s, f, { x: 10, y: -92, w: 40, h: 52 }, 8, [5, -4], { single: true }) && f.lastHit === 'hit' && !f.bitten) {
+            f.bitten = true; f.hp = Math.min(C.hp, f.hp + 4); ev(s, { t: 'heal', x: f.x, y: f.y - 50 });
+          }
+        } else { f.vx *= .7; if (f.st >= 28) endSkill(f); }
+      },
+    },
+  ],
+  scorch: [
+    { // Fire Breath
+      start: noop,
+      update(f, s) {
+        f.vx *= .7; hover(f, .7);
+        if (f.st >= 8 && f.st < 38) {
+          if ((f.st - 8) % 6 === 0) { f.hitSet = []; hitEnemies(s, f, { x: 14, y: -66, w: 92, h: 40 }, 2, [1.5, -1], { single: true, magic: true }); }
+          if (f.st % 2 === 0) ev(s, { t: 'flame', x: f.x + f.face * 40, y: f.y - 50, d: f.face });
+        }
+        if (f.st >= 44) endSkill(f);
+      },
+    },
+    { // Flap
+      start(f, s) { f.vy = -10.5; f.onGround = false; ev(s, { t: 'jump', x: f.x, y: f.y, air: true }); },
+      update(f, s, inp) { steer(f, inp, 4, .12); if (f.st >= 14) endSkill(f); },
+    },
+    { // Fireball
+      start: noop,
+      update(f, s) {
+        f.vx *= .7; if (f.st < 18) hover(f, .6);
+        if (f.st === 16) spawnProj(s, f, { type: 'fireball', x: f.x + f.face * 34, y: f.y - 46, vx: f.face * 5.5, vy: 0, w: 36, h: 36, dmg: 12, kb: [8, -7], radial: true, life: 90, boom: true, magic: true, reflect: true });
+        if (f.st >= 30) endSkill(f);
+      },
+    },
+  ],
+  selene: [
+    { // Starfall: three stars land ahead of you, one after another
+      start(f) { f.sgroup = { lock: -1 }; },
+      update(f, s) {
+        f.vx *= .6; hover(f, .6);
+        [10, 16, 22].forEach((t0, k) => {
+          if (f.st === t0) spawnProj(s, f, { type: 'star', group: f.sgroup, x: f.x + f.face * (80 + k * 60), y: f.y - 300, vx: 0, vy: 9, w: 26, h: 26, dmg: 6, kb: [3, -5], radial: true, life: 45, magic: true });
+        });
+        if (f.st >= 28) endSkill(f);
+      },
+    },
+    { // Moon Jump: low gravity for a while
+      start(f, s) { f.vy = -10; f.onGround = false; f.lowGT = 200; ev(s, { t: 'moon', x: f.x, y: f.y - 40 }); },
+      update(f) { if (f.st >= 6) endSkill(f); },
+    },
+    { // Lunar Shield
+      start: noop,
+      update(f, s) {
+        f.vx *= .6; hover(f, .6);
+        if (f.st === 6) { f.shieldT = 300; ev(s, { t: 'moon', x: f.x, y: f.y - 50 }); }
+        if (f.st >= 14) endSkill(f);
+      },
+    },
+  ],
+  fangor: [
+    { // Howl: faster and stronger for 5 seconds
+      start: noop,
+      update(f, s) {
+        f.vx *= .6;
+        if (f.st === 14) { f.rageT = 240; ev(s, { t: 'roar', x: f.x + f.face * 20, y: f.y - 96 }); }
+        if (f.st >= 30) endSkill(f);
+      },
+    },
+    { // Pounce
+      start: noop,
+      update(f, s, inp) {
+        if (f.st === 0) { const d = dirOf(inp) || f.face; f.face = d; f.vx = d * 9; f.vy = -9; f.onGround = false; }
+        hitEnemies(s, f, { x: 0, y: -92, w: 52, h: 82 }, 7, [6, -5], { single: true });
+        if ((f.st > 3 && f.onGround) || f.st >= 60) { f.vx *= .5; endSkill(f); }
+      },
+    },
+    { // Rend: three quick slashes and a big one
+      start: noop,
+      update(f, s) {
+        f.vx = f.face * 2; hover(f, .6);
+        if ([6, 11, 16].includes(f.st)) { f.hitSet = []; hitEnemies(s, f, { x: 8, y: -98, w: 58, h: 72 }, 2, [1.5, -1], { single: true }); }
+        if (f.st === 22) { f.hitSet = []; hitEnemies(s, f, { x: 8, y: -98, w: 62, h: 72 }, 5, [7, -5], { single: true }); }
+        if (f.st >= 34) endSkill(f);
+      },
+    },
+  ],
+  inky: [
+    { // Cannon Shot
+      start: noop,
+      update(f, s) {
+        f.vx *= .7; if (f.st < 16) hover(f, .6);
+        if (f.st === 14) { spawnProj(s, f, { type: 'cannonball', x: f.x + f.face * 30, y: f.y - 50, vx: f.face * 9, vy: -3, g: .22, w: 22, h: 22, dmg: 10, kb: [7, -5], life: 90, boom: true, reflect: true }); ev(s, { t: 'puff', x: f.x + f.face * 40, y: f.y - 50 }); }
+        if (f.st >= 30) endSkill(f);
+      },
+    },
+    { // Ink Jet: squirt ink down and shoot up
+      start(f, s) {
+        f.vy = -13; f.onGround = false;
+        spawnProj(s, f, { type: 'ink', x: f.x, y: f.y - 10, vx: 0, vy: 4, g: .4, w: 22, h: 22, dmg: 4, kb: [2, -3], life: 80 });
+      },
+      update(f, s, inp) { steer(f, inp, 4, .1); if (f.st >= 18) endSkill(f); },
+    },
+    { // Tentacle Grab: pull an enemy in
+      start: noop,
+      update(f, s) {
+        f.vx *= .6; hover(f, .6);
+        if (f.st >= 8 && f.st < 14 && hitEnemies(s, f, { x: 10, y: -80, w: 160, h: 50 }, 6, [0, -2], { single: true }) && f.lastHit === 'hit') {
+          const o = s.fighters[f.lock];
+          if (o) { o.vx = Math.sign(f.x - o.x) * 8; o.vy = -2; o.hitstun = 26; }
+        }
+        if (f.st >= 30) endSkill(f);
+      },
+    },
+  ],
+  jinx: [
+    { // Juggling Pins
+      start: noop,
+      update(f, s) {
+        if (f.st < 10) hover(f, .6);
+        if (f.st === 8) { const group = { lock: -1 }; [[6, -7], [8, -5], [10, -3]].forEach(([vx, vy]) => spawnProj(s, f, { group, type: 'pin', x: f.x + f.face * 20, y: f.y - 70, vx: f.face * vx, vy, g: .35, w: 16, h: 16, dmg: 5, kb: [4, -4], life: 80, reflect: true })); }
+        if (f.st >= 20) endSkill(f);
+      },
+    },
+    { // Balloon Ride: float up, hold down to pop it early
+      start(f) { f.vy = Math.min(f.vy, -3); f.onGround = false; },
+      update(f, s, inp) {
+        if (f.st < 70 && !(inp.down && f.st > 10)) {
+          f.noGrav = true; f.vy += (-3.2 - f.vy) * .1; steer(f, inp, 3.5, .1);
+        } else {
+          ev(s, { t: 'boom', x: f.x, y: f.y - 130 });
+          hitEnemies(s, f, { x: -50, y: -160, w: 100, h: 160 }, 5, [3, -6], { radial: true, single: true });
+          endSkill(f);
+        }
+      },
+    },
+    { // Jack-in-the-Box: a trap that launches enemies up (one at a time)
+      start: noop,
+      update(f, s) {
+        f.vx *= .6;
+        if (f.st === 10) {
+          s.projectiles = s.projectiles.filter(p => !(p.type === 'jack' && p.owner === f.idx));
+          const base = { type: 'jack', x: f.x + f.face * 40, vx: 0, w: 40, h: 36, dmg: 8, kb: [2, -12], radial: true, trap: true, armT: 20, life: 420 };
+          if (f.onGround) spawnProj(s, f, Object.assign(base, { ground: true, plat: f.plat, y: f.y, vy: 0 }));
+          else spawnProj(s, f, Object.assign(base, { drop: true, y: f.y, vy: 1, g: .5 }));
+        }
+        if (f.st >= 22) endSkill(f);
       },
     },
   ],
