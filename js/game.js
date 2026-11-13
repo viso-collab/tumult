@@ -228,7 +228,6 @@ function updateFighters(s, I, P) {
 
 function control(s, f, C, inp, pr, plats) {
   if (f.state === 'block' && f.blockstun > 0) return;
-  const o = nearestEnemy(s, f);
   // melee combo (one button)
   if (pr.attack && f.atkCd <= 0) { startMove(f, f.comboT > 0 && f.comboNext ? f.comboNext : 'jab1'); return; }
   // three extra attacks
@@ -240,13 +239,13 @@ function control(s, f, C, inp, pr, plats) {
   }
   // block: hold down on the ground
   if (f.onGround && inp.down && !inp.up) {
-    setState(f, 'block'); if (o) f.face = o.x >= f.x ? 1 : -1; f.vx *= .6;
+    setState(f, 'block'); f.vx *= .6;
     return;
   }
   if (f.state === 'block') setState(f, 'idle');
 
   const dir = dirOf(inp);
-  if (f.onGround) { f.vx += (dir * C.speed - f.vx) * .3; f.face = dir || (o ? (o.x >= f.x ? 1 : -1) : f.face); }
+  if (f.onGround) { f.vx += (dir * C.speed - f.vx) * .3; if (dir) f.face = dir; }   // keep facing the way you last walked
   else { f.vx += (dir * C.speed - f.vx) * .1; if (dir) f.face = dir; }
 
   if (pr.up) {
@@ -386,7 +385,7 @@ function applyHit(s, o, dmg, kx, ky, hx, hy, fromX, opts) {
   if (o.vy < 0) o.onGround = false;
   o.hitstun = opts.stun || Math.round((8 + dmg * 1.6) / Math.sqrt(C.weight));
   o.state = 'hurt'; o.st = 0; o.move = null; o.sk = -1;
-  o.flash = 6; o.noGrav = false; o.glide = false; o.armor = false; o.face = side;
+  o.flash = 6; o.noGrav = false; o.glide = false; o.armor = false;
   o.comboT = 0; o.stealthT = 0; o.zip = null;
   o.hs = dmg >= 10 ? 7 : dmg >= 6 ? 5 : 3;
   ev(s, { t: opts.stun ? 'snare' : 'hit', x: hx, y: hy, big: dmg >= 10, magic: !!opts.magic });
