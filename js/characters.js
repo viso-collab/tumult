@@ -611,8 +611,8 @@ const CHARS = [
     reach: 8, shoulder: [8, -52], trail: '#bfe9ff',
     stats: { power: 3, speed: 2, jump: 3, magic: 1 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 5, kb: [2, -1], box: { x: 12, y: -64, w: 38, h: 28 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 5, kb: [2, -1], box: { x: 10, y: -66, w: 38, h: 40 }, anim: 'punch2', next: 'fin' },
+      jab1: { f: [5, 3, 9], dmg: 4, kb: [2, -1], box: { x: 12, y: -64, w: 38, h: 28 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 10, y: -66, w: 38, h: 40 }, anim: 'punch2', next: 'fin' },
       fin: { f: [10, 4, 16], dmg: 10, kb: [7, -6], box: { x: 6, y: -100, w: 52, h: 96 }, anim: 'slam', cd: 30 },
     },
     skills: [
@@ -699,7 +699,7 @@ const CHARS = [
   },
   {
     id: 'lumina', name: 'LUMINA', title: 'Elven light mage',
-    hp: 96, w: 38, h: 102, speed: 3.8, jump: 10.5, jumps: 2, grav: .55, maxFall: 10, weight: .85,
+    hp: 93, w: 38, h: 102, speed: 3.8, jump: 10.5, jumps: 2, grav: .55, maxFall: 10, weight: .85,
     reach: 12, shoulder: [6, -72], trail: '#9ff3ff',
     stats: { power: 2, speed: 3, jump: 3, magic: 5 },
     moves: {

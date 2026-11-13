@@ -689,7 +689,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         if (f.st < 10) hover(f, .6);
-        if (f.st === 9) spawnProj(s, f, { type: 'prism', x: f.x + f.face * 40, y: f.y - 76, vx: f.face * 12, vy: 0, w: 44, h: 12, dmg: 9, kb: [5, -2], life: 60, magic: true, reflect: true });
+        if (f.st === 9) spawnProj(s, f, { type: 'prism', x: f.x + f.face * 40, y: f.y - 76, vx: f.face * 12, vy: 0, w: 44, h: 12, dmg: 8, kb: [5, -2], life: 60, magic: true, reflect: true });
         if (f.onGround) f.vx *= .8;
         if (f.st >= 22) endSkill(f);
       },
