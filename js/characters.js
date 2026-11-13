@@ -792,9 +792,9 @@ const CHARS = [
     reach: 8, shoulder: [6, -50], trail: '#9fe6ff',
     stats: { power: 2, speed: 4, jump: 4, magic: 4 },
     moves: {
-      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 10, y: -62, w: 42, h: 30 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [4, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 8, y: -42, w: 46, h: 32 }, anim: 'kick', next: 'fin' },
-      fin: { f: [7, 5, 14], dmg: 9, kb: [6, -6], box: { x: -38, y: -90, w: 96, h: 86 }, anim: 'spin', cd: 28 },
+      jab1: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 10, y: -62, w: 42, h: 30 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [4, 3, 10], dmg: 3, kb: [1.5, -1], box: { x: 8, y: -42, w: 46, h: 32 }, anim: 'kick', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 7, kb: [6, -6], box: { x: -38, y: -90, w: 96, h: 86 }, anim: 'spin', cd: 28 },
     },
     skills: [
       { name: 'Foxfire', desc: 'Three spirit flames circle around you.', cd: 180 },
@@ -815,9 +815,9 @@ const CHARS = [
     reach: 8, shoulder: [8, -52], trail: '#bfe9ff',
     stats: { power: 3, speed: 2, jump: 3, magic: 1 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 4, kb: [2, -1], box: { x: 12, y: -64, w: 38, h: 28 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 10, y: -66, w: 38, h: 40 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [10, 4, 16], dmg: 10, kb: [7, -6], box: { x: 6, y: -100, w: 52, h: 96 }, anim: 'slam', cd: 30 },
+      jab1: { f: [5, 3, 9], dmg: 3, kb: [2, -1], box: { x: 12, y: -64, w: 38, h: 28 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 3, kb: [2, -1], box: { x: 10, y: -66, w: 38, h: 40 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [10, 4, 16], dmg: 8, kb: [7, -6], box: { x: 6, y: -100, w: 52, h: 96 }, anim: 'slam', cd: 30 },
     },
     skills: [
       { name: 'Rocket Fist', desc: 'Fire your fist straight ahead.', cd: 100 },
@@ -838,9 +838,9 @@ const CHARS = [
     reach: 6, shoulder: [14, -92], trail: '#ff8a3a',
     stats: { power: 5, speed: 1, jump: 2, magic: 3 },
     moves: {
-      jab1: { f: [6, 3, 11], dmg: 3, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [6, 3, 11], dmg: 3, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [14, 5, 20], dmg: 11, kb: [9, -6], box: { x: 10, y: -140, w: 78, h: 134 }, anim: 'slam', armor: true, cd: 34 },
+      jab1: { f: [6, 3, 11], dmg: 2, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [6, 3, 11], dmg: 2, kb: [2, -1], box: { x: 16, y: -100, w: 52, h: 46 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [14, 5, 20], dmg: 9, kb: [9, -6], box: { x: 10, y: -140, w: 78, h: 134 }, anim: 'slam', armor: true, cd: 34 },
     },
     skills: [
       { name: 'Magma Toss', desc: 'Lob lava that leaves a burning pool.', cd: 120 },
@@ -861,9 +861,9 @@ const CHARS = [
     reach: 10, shoulder: [6, -70], trail: '#9bff7a',
     stats: { power: 3, speed: 3, jump: 3, magic: 5 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 14, y: -80, w: 44, h: 32 }, anim: 'cast', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 5, kb: [1.5, -1], box: { x: 6, y: -96, w: 60, h: 60 }, anim: 'sweep', next: 'fin' },
-      fin: { f: [9, 5, 15], dmg: 10, kb: [7, -4], box: { x: 12, y: -100, w: 68, h: 66 }, anim: 'cast', cd: 30 },
+      jab1: { f: [5, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 14, y: -80, w: 44, h: 32 }, anim: 'cast', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 6, y: -96, w: 60, h: 60 }, anim: 'sweep', next: 'fin' },
+      fin: { f: [9, 5, 15], dmg: 8, kb: [7, -4], box: { x: 12, y: -100, w: 68, h: 66 }, anim: 'cast', cd: 30 },
     },
     skills: [
       { name: 'Raven Call', desc: 'A raven flies out and comes back to you.', cd: 100 },
@@ -884,9 +884,9 @@ const CHARS = [
     reach: 8, shoulder: [6, -86], trail: '#7dffd0',
     stats: { power: 3, speed: 3, jump: 4, magic: 3 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -104, w: 46, h: 44 }, anim: 'sweep', next: 'jab2' },
-      jab2: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -96, w: 46, h: 40 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [8, 4, 14], dmg: 9, kb: [7, -4], box: { x: 8, y: -112, w: 64, h: 72 }, anim: 'headbutt', cd: 28 },
+      jab1: { f: [5, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -104, w: 46, h: 44 }, anim: 'sweep', next: 'jab2' },
+      jab2: { f: [5, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -96, w: 46, h: 40 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [8, 4, 14], dmg: 7, kb: [7, -4], box: { x: 8, y: -112, w: 64, h: 72 }, anim: 'headbutt', cd: 28 },
     },
     skills: [
       { name: 'Shadow Snare', desc: 'A creeping shadow that roots enemies.', cd: 110 },
@@ -907,9 +907,9 @@ const CHARS = [
     reach: 12, shoulder: [6, -72], trail: '#9ff3ff',
     stats: { power: 2, speed: 3, jump: 3, magic: 5 },
     moves: {
-      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'fin' },
-      fin: { f: [7, 5, 14], dmg: 9, kb: [6, -5], box: { x: -36, y: -108, w: 104, h: 100 }, anim: 'spin', cd: 30 },
+      jab1: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 7, kb: [6, -5], box: { x: -36, y: -108, w: 104, h: 100 }, anim: 'spin', cd: 30 },
     },
     skills: [
       { name: 'Prism Bolt', desc: 'Fire a fast bolt of light.', cd: 90 },
@@ -926,13 +926,13 @@ const CHARS = [
   },
   {
     id: 'sable', name: 'SABLE', title: 'Shadow ninja cat',
-    hp: 96, w: 36, h: 86, speed: 5.4, jump: 11.5, jumps: 2, grav: .6, maxFall: 11, weight: .75,
+    hp: 100, w: 36, h: 86, speed: 5.4, jump: 11.5, jumps: 2, grav: .6, maxFall: 11, weight: .75,
     reach: 6, shoulder: [6, -52], trail: '#ff7a7a',
     stats: { power: 3, speed: 5, jump: 4, magic: 1 },
     moves: {
-      jab1: { f: [4, 3, 8], dmg: 4, kb: [1.5, -1], box: { x: 8, y: -84, w: 54, h: 54 }, anim: 'sweep', next: 'jab2' },
-      jab2: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 8, y: -70, w: 56, h: 40 }, anim: 'punch', next: 'fin' },
-      fin: { f: [6, 5, 14], dmg: 8, kb: [3, -9], box: { x: 0, y: -124, w: 56, h: 110 }, anim: 'uppercut', cd: 26 },
+      jab1: { f: [4, 3, 8], dmg: 3, kb: [1.5, -1], box: { x: 8, y: -84, w: 54, h: 54 }, anim: 'sweep', next: 'jab2' },
+      jab2: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 8, y: -70, w: 56, h: 40 }, anim: 'punch', next: 'fin' },
+      fin: { f: [6, 5, 14], dmg: 6, kb: [3, -9], box: { x: 0, y: -124, w: 56, h: 110 }, anim: 'uppercut', cd: 26 },
     },
     skills: [
       { name: 'Shuriken Fan', desc: 'Throw three stars in a fan.', cd: 100 },
@@ -953,9 +953,9 @@ const CHARS = [
     reach: 6, shoulder: [12, -66], trail: '#bfe9ff',
     stats: { power: 4, speed: 2, jump: 2, magic: 1 },
     moves: {
-      jab1: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 14, y: -76, w: 46, h: 40 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [6, 3, 10], dmg: 5, kb: [2, -1], box: { x: 14, y: -84, w: 46, h: 50 }, anim: 'headbutt', next: 'fin' },
-      fin: { f: [11, 5, 18], dmg: 11, kb: [8, -6], box: { x: 6, y: -124, w: 74, h: 120 }, anim: 'slam', cd: 32 },
+      jab1: { f: [5, 3, 10], dmg: 3, kb: [2, -1], box: { x: 14, y: -76, w: 46, h: 40 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [6, 3, 10], dmg: 4, kb: [2, -1], box: { x: 14, y: -84, w: 46, h: 50 }, anim: 'headbutt', next: 'fin' },
+      fin: { f: [11, 5, 18], dmg: 9, kb: [8, -6], box: { x: 6, y: -124, w: 74, h: 120 }, anim: 'slam', cd: 32 },
     },
     skills: [
       { name: 'Belly Slide', desc: 'Slide forward on your belly.', cd: 100 },
@@ -976,9 +976,9 @@ const CHARS = [
     reach: 8, shoulder: [26, -20], trail: '#9dff8a',
     stats: { power: 4, speed: 2, jump: 4, magic: 2 },
     moves: {
-      jab1: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 14, y: -50, w: 44, h: 34 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 10, y: -54, w: 46, h: 40 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [10, 5, 16], dmg: 10, kb: [8, -6], box: { x: 0, y: -96, w: 76, h: 96 }, anim: 'slam', cd: 30 },
+      jab1: { f: [5, 3, 10], dmg: 3, kb: [2, -1], box: { x: 14, y: -50, w: 44, h: 34 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 3, kb: [2, -1], box: { x: 10, y: -54, w: 46, h: 40 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [10, 5, 16], dmg: 8, kb: [8, -6], box: { x: 0, y: -96, w: 76, h: 96 }, anim: 'slam', cd: 30 },
     },
     skills: [
       { name: 'Goo Glob', desc: 'Lob goo that leaves a sticky, slowing puddle.', cd: 120 },
@@ -995,16 +995,16 @@ const CHARS = [
   },
   {
     id: 'tempest', name: 'TEMPEST', title: 'Storm harpy',
-    hp: 95, w: 40, h: 98, speed: 4.3, jump: 11, jumps: 3, grav: .52, maxFall: 9, weight: .85,
+    hp: 98, w: 40, h: 98, speed: 4.3, jump: 11, jumps: 3, grav: .52, maxFall: 9, weight: .85,
     reach: 10, shoulder: [6, -70], trail: '#ffe45c',
     stats: { power: 2, speed: 4, jump: 5, magic: 4 },
     moves: {
-      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -80, w: 46, h: 30 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [5, 3, 9], dmg: 5, kb: [1.5, -1], box: { x: 10, y: -46, w: 50, h: 34 }, anim: 'kick', next: 'fin' },
-      fin: { f: [7, 5, 14], dmg: 10, kb: [6, -6], box: { x: -40, y: -104, w: 100, h: 100 }, anim: 'spin', cd: 28 },
+      jab1: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -80, w: 46, h: 30 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 10, y: -46, w: 50, h: 34 }, anim: 'kick', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 8, kb: [6, -6], box: { x: -40, y: -104, w: 100, h: 100 }, anim: 'spin', cd: 28 },
     },
     skills: [
-      { name: 'Gust', desc: 'A blast of wind that shoves an enemy far away.', cd: 110 },
+      { name: 'Gust', desc: 'A blast of wind that shoves an enemy far away.', cd: 90 },
       { name: 'Updraft', desc: 'Ride a whirlwind upward. Steer left and right.', cd: 60, air: true },
       { name: 'Thunderstrike', desc: 'Lightning hits the spot ahead of you after a moment.', cd: 180 },
     ],
@@ -1022,9 +1022,9 @@ const CHARS = [
     reach: 10, shoulder: [8, -90], trail: '#7dffb0',
     stats: { power: 4, speed: 2, jump: 3, magic: 5 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -104, w: 48, h: 46 }, anim: 'sweep', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -96, w: 50, h: 32 }, anim: 'punch', next: 'fin' },
-      fin: { f: [11, 5, 17], dmg: 10, kb: [8, -6], box: { x: 4, y: -130, w: 72, h: 126 }, anim: 'slam', cd: 30 },
+      jab1: { f: [5, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -104, w: 48, h: 46 }, anim: 'sweep', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -96, w: 50, h: 32 }, anim: 'punch', next: 'fin' },
+      fin: { f: [11, 5, 17], dmg: 8, kb: [8, -6], box: { x: 4, y: -130, w: 72, h: 126 }, anim: 'slam', cd: 30 },
     },
     skills: [
       { name: 'Bone Spikes', desc: 'Spikes burst from the ground and race forward.', cd: 120 },
@@ -1045,9 +1045,9 @@ const CHARS = [
     reach: 8, shoulder: [6, -40], trail: '#ffd27a',
     stats: { power: 3, speed: 4, jump: 4, magic: 3 },
     moves: {
-      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 8, y: -54, w: 44, h: 30 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [4, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 6, y: -36, w: 48, h: 32 }, anim: 'kick', next: 'fin' },
-      fin: { f: [7, 5, 14], dmg: 9, kb: [7, -5], box: { x: 4, y: -90, w: 60, h: 72 }, anim: 'headbutt', cd: 28 },
+      jab1: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 8, y: -54, w: 44, h: 30 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [4, 3, 10], dmg: 3, kb: [1.5, -1], box: { x: 6, y: -36, w: 48, h: 32 }, anim: 'kick', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 7, kb: [7, -5], box: { x: 4, y: -90, w: 60, h: 72 }, anim: 'headbutt', cd: 28 },
     },
     skills: [
       { name: 'Spore Cloud', desc: 'A drifting cloud that poisons and slows one enemy.', cd: 140 },

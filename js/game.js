@@ -5,7 +5,9 @@ const BTN = ['left', 'right', 'up', 'down', 'attack', 's1', 's2', 's3'];
 const ROUND_TIME = 60 * 60;   // 60 seconds
 const FALL_DAMAGE = 15;       // HP lost when falling off the stage
 const WINS_NEEDED = 2;
-const COMBO_WINDOW = 40;      // how long you have to continue the combo after a hit (frames, ~0.67 s)
+const COMBO_WINDOW = 40;
+const SKILL_POWER = 1.25;   // extra attacks (Q/E/R) hit harder than the melee combo (F)
+const sp = d => Math.round(d * SKILL_POWER);      // how long you have to continue the combo after a hit (frames, ~0.67 s)
 
 function newState(mode, online, solo) {
   const n = mode === '2v2' ? 4 : 2;
@@ -225,7 +227,7 @@ function updateFighters(s, I, P) {
       if (s.tick % 20 === 0) for (const o of s.fighters) {   // Molten Core: touching Magmor burns
         if (o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0) continue;
         const r = hurtRect(f), h = hurtRect(o);
-        if (overlap({ x: r.x - 14, y: r.y - 10, w: r.w + 28, h: r.h + 10 }, h)) chip(s, o, 2);
+        if (overlap({ x: r.x - 14, y: r.y - 10, w: r.w + 28, h: r.h + 10 }, h)) chip(s, o, sp(2));
       }
     }
     if (f.state === 'hurt') { f.hitstun--; if (f.hitstun <= 0) setState(f, f.onGround ? 'idle' : 'air'); }
@@ -255,7 +257,7 @@ function swallowed(s, f) {
   const d = h ? h.face : 1;
   if (h) h.fullT = 0;
   f.x += d * 34;
-  applyHit(s, f, 8, d * 9, -6, f.x, f.y - 30, f.x - d * 40);
+  applyHit(s, f, sp(7), d * 9, -6, f.x, f.y - 30, f.x - d * 40);
   ev(s, { t: 'goo', x: f.x, y: f.y - 30 });
 }
 
@@ -303,7 +305,7 @@ function updateAttack(s, f, C) {
   if (!mv) { setState(f, 'idle'); return; }
   const [S, A, R] = mv.f;
   f.vx *= f.onGround ? .8 : .97;
-  if (f.st >= S && f.st < S + A && hitEnemies(s, f, mv.box, mv.dmg + (f.stealthT > 0 ? 4 : 0), mv.kb)) f.stealthT = 0;
+  if (f.st >= S && f.st < S + A && hitEnemies(s, f, mv.box, mv.dmg + (f.stealthT > 0 ? 6 : 0), mv.kb)) f.stealthT = 0;
   if (mv.next && f.buf > 0 && f.st >= S + A) { startMove(f, mv.next); return; }   // continue the combo
   if (f.st >= S + A + R) {
     if (mv.next) { f.comboNext = mv.next; f.comboT = COMBO_WINDOW; }   // wait a moment and the combo continues
@@ -380,6 +382,7 @@ function hasArmor(o) {
 
 function hitEnemies(s, f, box, dmg, kb, opts) {
   opts = opts || {};
+  if (f.state === 'skill') dmg = sp(dmg);
   const r = boxRect(f, box);
   let any = false;
   for (const o of s.fighters) {
@@ -416,7 +419,7 @@ function applyHit(s, o, dmg, kx, ky, hx, hy, fromX, opts) {
   o.hp = Math.max(0, o.hp - dmg);
   o.vx = kx / C.weight; o.vy = ky / C.weight;
   if (o.vy < 0) o.onGround = false;
-  o.hitstun = opts.stun || Math.round((8 + dmg * 1.6) / Math.sqrt(C.weight));
+  o.hitstun = opts.stun || Math.round((9.6 + dmg * 1.6) / Math.sqrt(C.weight));
   o.state = 'hurt'; o.st = 0; o.move = null; o.sk = -1;
   o.flash = 6; o.noGrav = false; o.glide = false; o.armor = false;
   o.comboT = 0; o.stealthT = 0; o.zip = null;
@@ -464,7 +467,7 @@ function updateProjectiles(s) {
           const d = Math.hypot(e.x - p.x, (e.y - CHARS[e.c].h / 2) - (p.y - 40));
           if (d < best) { best = d; o = e; }
         }
-        if (o) applyHit(s, o, 11, (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
+        if (o) applyHit(s, o, sp(11), (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
       }
       return;
     }
@@ -522,9 +525,9 @@ function updateProjectiles(s) {
         p.hitSet.push(o.idx);
         if (p.group) p.group.lock = o.idx;
         if (p.slow) o.slowT = Math.max(o.slowT || 0, 40);
-        if (p.chip) { if (p.dmg) chip(s, o, p.dmg); continue; }
+        if (p.chip) { if (p.dmg) chip(s, o, sp(p.dmg)); continue; }
         const dir = p.radial ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || (owner ? owner.face : 1));
-        const res = applyHit(s, o, p.dmg, p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
+        const res = applyHit(s, o, sp(p.dmg), p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
         if (p.type === 'harpoon' && res === 'hit' && owner) {   // reel the enemy in
           o.vx = (owner.x >= o.x ? 1 : -1) * 7; o.vy = -3; o.hitstun = 18;
           ev(s, { t: 'clang', x: o.x, y: o.y - 40 });
@@ -616,7 +619,7 @@ const SKILLS = {
         if (f.st < 5) f.vx *= .5;
         else if (f.st < 19) {
           f.vx = f.face * 10;
-          hitEnemies(s, f, { x: 8, y: -74, w: 40, h: 74 }, 8, [9, -5], { single: true });
+          hitEnemies(s, f, { x: 8, y: -74, w: 40, h: 74 }, 7, [9, -5], { single: true });
           reflectShots(s, f, { x: 4, y: -84, w: 48, h: 84 });
         } else { f.armor = false; f.vx *= .8; if (f.st >= 30) endSkill(f); }
       },
@@ -656,7 +659,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         if (f.st < 12) hover(f, .6);
-        if (f.st === 9) spawnProj(s, f, { type: 'raven', x: f.x + f.face * 24, y: f.y - 80, y0: f.y - 80, dir0: f.face, vx: f.face * 9, vy: 0, w: 30, h: 22, dmg: 7, kb: [4, -3], life: 80, pierce: true, reflect: true, magic: true });
+        if (f.st === 9) spawnProj(s, f, { type: 'raven', x: f.x + f.face * 24, y: f.y - 80, y0: f.y - 80, dir0: f.face, vx: f.face * 9, vy: 0, w: 30, h: 22, dmg: 6, kb: [4, -3], life: 80, pierce: true, reflect: true, magic: true });
         if (f.st >= 20) endSkill(f);
       },
     },
@@ -676,7 +679,7 @@ const SKILLS = {
         f.vx *= .6;
         if (f.st === 12) {
           s.projectiles = s.projectiles.filter(p => !(p.type === 'rune' && p.owner === f.idx));
-          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 15, life: 240 });
+          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200 });
         }
         if (f.st >= 22) endSkill(f);
       },
@@ -759,7 +762,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         if (f.st < 10) hover(f, .5);
-        if (f.st === 6) { const group = { lock: -1 }; for (const a of [-.22, 0, .22]) spawnProj(s, f, { group, type: 'shuriken', x: f.x + f.face * 16, y: f.y - 56, vx: f.face * 11 * Math.cos(a), vy: 11 * Math.sin(a), w: 16, h: 16, dmg: 4, kb: [3, -2], life: 45, reflect: true }); }
+        if (f.st === 6) { const group = { lock: -1 }; for (const a of [-.22, 0, .22]) spawnProj(s, f, { group, type: 'shuriken', x: f.x + f.face * 16, y: f.y - 56, vx: f.face * 11 * Math.cos(a), vy: 11 * Math.sin(a), w: 16, h: 16, dmg: 5, kb: [3, -2], life: 45, reflect: true }); }
         if (f.st >= 16) endSkill(f);
       },
     },
@@ -769,7 +772,7 @@ const SKILLS = {
         if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, 0); f.onGround = f.onGround && f.bdy >= 0; }
         if (f.st < 12) {
           f.noGrav = true; f.vx = f.bdx * 13; f.vy = f.bdy * 13;
-          hitEnemies(s, f, { x: -20, y: -80, w: 60, h: 80 }, 7, [5, -4], { single: true });
+          hitEnemies(s, f, { x: -20, y: -80, w: 60, h: 80 }, 8, [5, -4], { single: true });
           if (f.st % 2 === 0) ev(s, { t: 'tele', x: f.x, y: f.y - 40, small: true });
         } else {
           if (f.st === 12) { f.vx *= .4; f.vy *= .3; }
@@ -890,7 +893,7 @@ const SKILLS = {
       update(f, s, inp) {
         if (f.st < 26) {
           f.noGrav = true; f.vy = Math.max(f.vy - .9, -9); steer(f, inp, 3.5, .12);
-          hitEnemies(s, f, { x: -34, y: -110, w: 68, h: 120 }, 5, [3, -8], { radial: true, magic: true, single: true });
+          hitEnemies(s, f, { x: -34, y: -110, w: 68, h: 120 }, 6, [3, -8], { radial: true, magic: true, single: true });
           if (f.st % 3 === 0) ev(s, { t: 'wind', x: f.x, y: f.y });
         } else endSkill(f);
       },
@@ -901,7 +904,7 @@ const SKILLS = {
         f.vx *= .6; hover(f, .5);
         if (f.st === 2) spawnProj(s, f, { type: 'cloud', x: f.tx, y: f.ty - 200, vx: 0, vy: 0, w: 10, h: 10, harmless: true, life: 40 });
         if (f.st === 24) {
-          spawnProj(s, f, { type: 'thunder', anchor: 'bottom', x: f.tx, y: f.ty + 10, vx: 0, vy: 0, w: 52, h: 210, dmg: 12, kb: [4, -8], radial: true, pierce: true, life: 10, magic: true });
+          spawnProj(s, f, { type: 'thunder', anchor: 'bottom', x: f.tx, y: f.ty + 10, vx: 0, vy: 0, w: 52, h: 210, dmg: 13, kb: [4, -8], radial: true, pierce: true, life: 10, magic: true });
           ev(s, { t: 'thunder', x: f.tx, y: f.ty });
         }
         if (f.st >= 36) endSkill(f);
@@ -970,7 +973,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         f.vx *= .6; if (f.st < 20) hover(f, .6);
-        if (f.st >= 8 && f.st < 13) hitEnemies(s, f, { x: 16, y: -66, w: 140, h: 40 }, 10, [8, -6], { single: true });
+        if (f.st >= 8 && f.st < 13) hitEnemies(s, f, { x: 16, y: -66, w: 140, h: 40 }, 9, [8, -6], { single: true });
         if (f.st >= 26) endSkill(f);
       },
     },
