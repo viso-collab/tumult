@@ -352,9 +352,11 @@ function hitEnemies(s, f, box, dmg, kb, opts) {
   let any = false;
   for (const o of s.fighters) {
     if (o === f || o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0 || f.hitSet.includes(o.idx)) continue;
+    if (opts.single && f.lock >= 0 && o.idx !== f.lock) continue;   // this attack only hits one enemy
     const h = hurtRect(o);
     if (!overlap(r, h)) continue;
     f.hitSet.push(o.idx);
+    if (opts.single) f.lock = o.idx;
     const dir = opts.radial ? (o.x >= f.x ? 1 : -1) : f.face;
     const hx = (Math.max(r.x, h.x) + Math.min(r.x + r.w, h.x + h.w)) / 2;
     const hy = (Math.max(r.y, h.y) + Math.min(r.y + r.h, h.y + h.h)) / 2;
@@ -401,13 +403,13 @@ function projRect(p) {
   if (p.ground || p.anchor === 'bottom') return { x: p.x - p.w / 2, y: p.y - p.h, w: p.w, h: p.h };
   return { x: p.x - p.w / 2, y: p.y - p.h / 2, w: p.w, h: p.h };
 }
-function spawnProj(s, f, p) { p.owner = f.idx; p.team = f.team; p.age = 0; p.hitSet = []; s.projectiles.push(p); return p; }
+function spawnProj(s, f, p) { p.owner = f.idx; p.team = f.team; p.age = 0; p.hitSet = []; if (!p.area && !p.group) p.group = { lock: -1 }; s.projectiles.push(p); return p; }
 function reflectShots(s, f, box) {   // Rook's shield sends shots back
   const r = boxRect(f, box);
   for (const p of s.projectiles) {
     if (p.team === f.team || !p.reflect || !overlap(projRect(p), r)) continue;
     p.vx = -p.vx * 1.1; if (p.dir0) p.dir0 = -p.dir0;
-    p.team = f.team; p.owner = f.idx; p.hitSet = []; p.life = Math.max(p.life, 40);
+    p.team = f.team; p.owner = f.idx; p.hitSet = []; if (p.group) p.group = { lock: -1 }; p.life = Math.max(p.life, 40);
     ev(s, { t: 'block', x: p.x, y: p.y });
   }
 }
@@ -420,11 +422,13 @@ function updateProjectiles(s) {
     if (p.type === 'decoy') {   // Kitsu's decoy explodes when its time is up
       if (p.life <= 0) {
         ev(s, { t: 'boom', x: p.x, y: p.y - 40 });
-        for (const o of s.fighters) {
-          if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0) continue;
-          if (Math.hypot(o.x - p.x, (o.y - CHARS[o.c].h / 2) - (p.y - 40)) < 85)
-            applyHit(s, o, 9, (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
+        let o = null, best = 85;   // only the closest enemy gets hit
+        for (const e of s.fighters) {
+          if (e.team === p.team || e.state === 'ko' || e.gone || e.inv > 0) continue;
+          const d = Math.hypot(e.x - p.x, (e.y - CHARS[e.c].h / 2) - (p.y - 40));
+          if (d < best) { best = d; o = e; }
         }
+        if (o) applyHit(s, o, 9, (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
       }
       return;
     }
@@ -453,7 +457,7 @@ function updateProjectiles(s) {
         if (p.x > pl.x && p.x < pl.x + pl.w && bottom >= pl.y && bottom - p.vy <= pl.y + 1) {
           p.life = 0; ev(s, { t: 'splash', x: p.x, y: pl.y });
           const px = pl.w < 90 ? pl.x + pl.w / 2 : Math.max(pl.x + 45, Math.min(pl.x + pl.w - 45, p.x));
-          born.push({ type: 'pool', ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
+          born.push({ type: 'pool', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
           break;
         }
       }
@@ -472,8 +476,10 @@ function updateProjectiles(s) {
       const r = projRect(p);
       for (const o of s.fighters) {
         if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0 || p.hitSet.includes(o.idx)) continue;
+        if (p.group && p.group.lock >= 0 && o.idx !== p.group.lock) continue;   // shots only hit one enemy
         if (!overlap(r, hurtRect(o))) continue;
         p.hitSet.push(o.idx);
+        if (p.group) p.group.lock = o.idx;
         if (p.chip) { chip(s, o, p.dmg); continue; }
         const dir = p.radial ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || (owner ? owner.face : 1));
         const res = applyHit(s, o, p.dmg, p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
@@ -491,7 +497,7 @@ function updateProjectiles(s) {
 
 // ---------- the three extra attacks (Q/E/R) ----------
 function startSkill(s, f, C, k) {
-  f.state = 'skill'; f.sk = k; f.st = 0; f.hitSet = []; f.quaked = false; f.armor = false; f.noGrav = false; f.comboT = 0;
+  f.state = 'skill'; f.sk = k; f.st = 0; f.hitSet = []; f.lock = -1; f.quaked = false; f.armor = false; f.noGrav = false; f.comboT = 0;
   f.cds[k] = C.skills[k].cd;
   if (C.skills[k].air && !f.onGround) f.airUsed[k] = true;
   SKILLS[C.id][k].start(f, s, C);
@@ -517,7 +523,7 @@ const SKILLS = {
         if (f.st < 12) hover(f, .6);
         if (f.st === 8) {
           s.projectiles = s.projectiles.filter(p => !(p.type === 'wisp' && p.owner === f.idx));
-          for (let k = 0; k < 3; k++) spawnProj(s, f, { type: 'wisp', a0: k * TAU / 3, x: f.x, y: f.y, vx: 0, vy: 0, w: 20, h: 20, dmg: 4, kb: [4, -4], life: 240, magic: true, radial: true });
+          const group = { lock: -1 }; for (let k = 0; k < 3; k++) spawnProj(s, f, { group, type: 'wisp', a0: k * TAU / 3, x: f.x, y: f.y, vx: 0, vy: 0, w: 20, h: 20, dmg: 4, kb: [4, -4], life: 240, magic: true, radial: true });
         }
         if (f.st >= 16) endSkill(f);
       },
@@ -526,7 +532,7 @@ const SKILLS = {
       start(f) { f.vy = -12.5; f.onGround = false; },
       update(f, s, inp) {
         if (f.st === 0) f.vx = (dirOf(inp) || -f.face) * 3.5;   // backflip, or the way you hold
-        if (f.st < 20) hitEnemies(s, f, { x: -44, y: -84, w: 70, h: 84 }, 5, [5, -6], { radial: true });
+        if (f.st < 20) hitEnemies(s, f, { x: -44, y: -84, w: 70, h: 84 }, 5, [5, -6], { radial: true, single: true });
         else endSkill(f);
       },
     },
@@ -556,7 +562,7 @@ const SKILLS = {
       update(f, s, inp) {
         if (f.st < 36) {
           f.noGrav = true; f.vy = Math.max(f.vy - .85, -8); steer(f, inp, 4.5, .15);
-          hitEnemies(s, f, { x: -22, y: -10, w: 44, h: 36 }, 4, [2, -4], { radial: true });
+          hitEnemies(s, f, { x: -22, y: -10, w: 44, h: 36 }, 4, [2, -4], { radial: true, single: true });
           if (f.st % 2 === 0) ev(s, { t: 'jet', x: f.x - f.face * 18, y: f.y - 36 });
         } else endSkill(f);
       },
@@ -568,7 +574,7 @@ const SKILLS = {
         if (f.st < 5) f.vx *= .5;
         else if (f.st < 19) {
           f.vx = f.face * 10;
-          hitEnemies(s, f, { x: 8, y: -74, w: 40, h: 74 }, 8, [9, -5]);
+          hitEnemies(s, f, { x: 8, y: -74, w: 40, h: 74 }, 8, [9, -5], { single: true });
           reflectShots(s, f, { x: 4, y: -84, w: 48, h: 84 });
         } else { f.armor = false; f.vx *= .8; if (f.st >= 30) endSkill(f); }
       },
@@ -618,7 +624,7 @@ const SKILLS = {
         if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, -.5); f.onGround = false; }
         if (f.st <= 30) {
           f.noGrav = true; f.vx = f.bdx * 8.5; f.vy = f.bdy * 8.5;
-          hitEnemies(s, f, { x: 0, y: -74, w: 42, h: 64 }, 6, [6, -4]);
+          hitEnemies(s, f, { x: 0, y: -74, w: 42, h: 64 }, 6, [6, -4], { single: true });
         } else endSkill(f);
       },
     },
@@ -628,7 +634,7 @@ const SKILLS = {
         f.vx *= .6;
         if (f.st === 12) {
           s.projectiles = s.projectiles.filter(p => !(p.type === 'rune' && p.owner === f.idx));
-          spawnProj(s, f, { type: 'rune', anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 15, life: 240 });
+          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 15, life: 240 });
         }
         if (f.st >= 22) endSkill(f);
       },
@@ -669,10 +675,10 @@ const SKILLS = {
         if (st >= 6 && st < 36) {
           f.vx = f.face * 2;
           if ((st - 6) % 6 === 0) f.hitSet = [];
-          hitEnemies(s, f, { x: -46, y: -122, w: 92, h: 112 }, 3, [2, -3], { radial: true });
+          hitEnemies(s, f, { x: -46, y: -122, w: 92, h: 112 }, 3, [2, -3], { radial: true, single: true });
         } else if (st === 36) {
           f.hitSet = [];
-          hitEnemies(s, f, { x: -50, y: -122, w: 100, h: 112 }, 5, [7, -6], { radial: true });
+          hitEnemies(s, f, { x: -50, y: -122, w: 100, h: 112 }, 5, [7, -6], { radial: true, single: true });
         }
         if (st >= 44) endSkill(f);
       },
@@ -693,7 +699,7 @@ const SKILLS = {
       update(f, s, inp) {
         if (f.st < 32) {
           f.noGrav = true; f.vy = -6.5 + f.st * .13; steer(f, inp, 4, .15);
-          hitEnemies(s, f, { x: -28, y: -104, w: 56, h: 100 }, 5, [3, -7], { radial: true, magic: true });
+          hitEnemies(s, f, { x: -28, y: -104, w: 56, h: 100 }, 5, [3, -7], { radial: true, magic: true, single: true });
         } else endSkill(f);
       },
     },
@@ -711,7 +717,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         if (f.st < 10) hover(f, .5);
-        if (f.st === 6) for (const a of [-.22, 0, .22]) spawnProj(s, f, { type: 'shuriken', x: f.x + f.face * 16, y: f.y - 56, vx: f.face * 11 * Math.cos(a), vy: 11 * Math.sin(a), w: 16, h: 16, dmg: 4, kb: [3, -2], life: 45, reflect: true });
+        if (f.st === 6) { const group = { lock: -1 }; for (const a of [-.22, 0, .22]) spawnProj(s, f, { group, type: 'shuriken', x: f.x + f.face * 16, y: f.y - 56, vx: f.face * 11 * Math.cos(a), vy: 11 * Math.sin(a), w: 16, h: 16, dmg: 4, kb: [3, -2], life: 45, reflect: true }); }
         if (f.st >= 16) endSkill(f);
       },
     },
@@ -721,7 +727,7 @@ const SKILLS = {
         if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, 0); f.onGround = f.onGround && f.bdy >= 0; }
         if (f.st < 12) {
           f.noGrav = true; f.vx = f.bdx * 13; f.vy = f.bdy * 13;
-          hitEnemies(s, f, { x: -20, y: -80, w: 60, h: 80 }, 7, [5, -4]);
+          hitEnemies(s, f, { x: -20, y: -80, w: 60, h: 80 }, 7, [5, -4], { single: true });
           if (f.st % 2 === 0) ev(s, { t: 'tele', x: f.x, y: f.y - 40, small: true });
         } else {
           if (f.st === 12) { f.vx *= .4; f.vy *= .3; }
@@ -751,7 +757,7 @@ const SKILLS = {
         else if (st < 36) {
           f.vx = f.face * (11 - (st - 6) * .2);
           if (!f.onGround) f.vy = Math.max(f.vy, 3);
-          hitEnemies(s, f, { x: -10, y: -44, w: 74, h: 44 }, 8, [7, -6]);
+          hitEnemies(s, f, { x: -10, y: -44, w: 74, h: 44 }, 8, [7, -6], { single: true });
           if (st % 4 === 0 && f.onGround) ev(s, { t: 'dash', x: f.x - f.face * 20, y: f.y - 6 });
         } else { f.vx *= .85; if (st >= 46) endSkill(f); }
       },
