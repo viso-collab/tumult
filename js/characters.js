@@ -611,9 +611,9 @@ const CHARS = [
     reach: 8, shoulder: [8, -52], trail: '#bfe9ff',
     stats: { power: 3, speed: 2, jump: 3, magic: 1 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 4, kb: [2, -1], box: { x: 12, y: -64, w: 36, h: 28 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 10, y: -66, w: 36, h: 40 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [10, 4, 16], dmg: 9, kb: [7, -6], box: { x: 6, y: -100, w: 52, h: 96 }, anim: 'slam', cd: 30 },
+      jab1: { f: [5, 3, 9], dmg: 5, kb: [2, -1], box: { x: 12, y: -64, w: 38, h: 28 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 5, kb: [2, -1], box: { x: 10, y: -66, w: 38, h: 40 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [10, 4, 16], dmg: 10, kb: [7, -6], box: { x: 6, y: -100, w: 52, h: 96 }, anim: 'slam', cd: 30 },
     },
     skills: [
       { name: 'Rocket Fist', desc: 'Fire your fist straight ahead.', cd: 100 },
@@ -653,13 +653,13 @@ const CHARS = [
   },
   {
     id: 'morwen', name: 'MORWEN', title: 'Witch of the ravens',
-    hp: 90, w: 38, h: 106, speed: 3.8, jump: 10.5, jumps: 2, grav: .5, maxFall: 9, weight: .85,
+    hp: 96, w: 38, h: 106, speed: 3.8, jump: 10.5, jumps: 2, grav: .5, maxFall: 9, weight: .85,
     reach: 10, shoulder: [6, -70], trail: '#9bff7a',
     stats: { power: 3, speed: 3, jump: 3, magic: 5 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 14, y: -80, w: 44, h: 32 }, anim: 'cast', next: 'jab2' },
-      jab2: { f: [5, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 6, y: -96, w: 60, h: 60 }, anim: 'sweep', next: 'fin' },
-      fin: { f: [9, 5, 15], dmg: 8, kb: [7, -4], box: { x: 12, y: -100, w: 68, h: 66 }, anim: 'cast', cd: 30 },
+      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 14, y: -80, w: 44, h: 32 }, anim: 'cast', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 5, kb: [1.5, -1], box: { x: 6, y: -96, w: 60, h: 60 }, anim: 'sweep', next: 'fin' },
+      fin: { f: [9, 5, 15], dmg: 10, kb: [7, -4], box: { x: 12, y: -100, w: 68, h: 66 }, anim: 'cast', cd: 30 },
     },
     skills: [
       { name: 'Raven Call', desc: 'A raven flies out and comes back to you.', cd: 100 },
@@ -676,13 +676,13 @@ const CHARS = [
   },
   {
     id: 'nightweaver', name: 'NIGHTWEAVER', title: 'Wraith of the deep woods',
-    hp: 95, w: 40, h: 112, speed: 3.9, jump: 10, jumps: 2, grav: .45, maxFall: 8, weight: .9,
-    reach: 14, shoulder: [6, -86], trail: '#7dffd0',
+    hp: 88, w: 40, h: 112, speed: 3.9, jump: 10, jumps: 2, grav: .45, maxFall: 8, weight: .9,
+    reach: 8, shoulder: [6, -86], trail: '#7dffd0',
     stats: { power: 3, speed: 3, jump: 4, magic: 3 },
     moves: {
-      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -104, w: 56, h: 44 }, anim: 'sweep', next: 'jab2' },
-      jab2: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -96, w: 56, h: 40 }, anim: 'punch2', next: 'fin' },
-      fin: { f: [8, 4, 14], dmg: 9, kb: [7, -4], box: { x: 8, y: -112, w: 78, h: 72 }, anim: 'headbutt', cd: 28 },
+      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -104, w: 46, h: 44 }, anim: 'sweep', next: 'jab2' },
+      jab2: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -96, w: 46, h: 40 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [8, 4, 14], dmg: 9, kb: [7, -4], box: { x: 8, y: -112, w: 64, h: 72 }, anim: 'headbutt', cd: 28 },
     },
     skills: [
       { name: 'Shadow Snare', desc: 'A creeping shadow that roots enemies.', cd: 110 },
@@ -699,13 +699,13 @@ const CHARS = [
   },
   {
     id: 'lumina', name: 'LUMINA', title: 'Elven light mage',
-    hp: 90, w: 38, h: 102, speed: 3.8, jump: 10.5, jumps: 2, grav: .55, maxFall: 10, weight: .85,
+    hp: 96, w: 38, h: 102, speed: 3.8, jump: 10.5, jumps: 2, grav: .55, maxFall: 10, weight: .85,
     reach: 12, shoulder: [6, -72], trail: '#9ff3ff',
     stats: { power: 2, speed: 3, jump: 3, magic: 5 },
     moves: {
-      jab1: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'jab2' },
-      jab2: { f: [4, 3, 9], dmg: 3, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'fin' },
-      fin: { f: [7, 5, 14], dmg: 8, kb: [6, -5], box: { x: -36, y: -108, w: 104, h: 100 }, anim: 'spin', cd: 30 },
+      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -78, w: 56, h: 26 }, anim: 'punch', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 9, kb: [6, -5], box: { x: -36, y: -108, w: 104, h: 100 }, anim: 'spin', cd: 30 },
     },
     skills: [
       { name: 'Prism Bolt', desc: 'Fire a fast bolt of light.', cd: 90 },
@@ -745,7 +745,7 @@ const CHARS = [
   },
   {
     id: 'tusk', name: 'TUSK', title: 'Walrus viking',
-    hp: 108, w: 60, h: 100, speed: 3.3, jump: 10.5, jumps: 2, grav: .7, maxFall: 13, weight: 1.4,
+    hp: 100, w: 60, h: 100, speed: 3.3, jump: 10.5, jumps: 2, grav: .7, maxFall: 13, weight: 1.4,
     reach: 6, shoulder: [12, -66], trail: '#bfe9ff',
     stats: { power: 4, speed: 2, jump: 2, magic: 1 },
     moves: {

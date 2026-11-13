@@ -614,7 +614,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         if (f.st < 12) hover(f, .6);
-        if (f.st === 9) spawnProj(s, f, { type: 'raven', x: f.x + f.face * 24, y: f.y - 80, y0: f.y - 80, dir0: f.face, vx: f.face * 9, vy: 0, w: 30, h: 22, dmg: 5, kb: [4, -3], life: 80, pierce: true, reflect: true, magic: true });
+        if (f.st === 9) spawnProj(s, f, { type: 'raven', x: f.x + f.face * 24, y: f.y - 80, y0: f.y - 80, dir0: f.face, vx: f.face * 9, vy: 0, w: 30, h: 22, dmg: 7, kb: [4, -3], life: 80, pierce: true, reflect: true, magic: true });
         if (f.st >= 20) endSkill(f);
       },
     },
@@ -624,7 +624,7 @@ const SKILLS = {
         if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, -.5); f.onGround = false; }
         if (f.st <= 30) {
           f.noGrav = true; f.vx = f.bdx * 8.5; f.vy = f.bdy * 8.5;
-          hitEnemies(s, f, { x: 0, y: -74, w: 42, h: 64 }, 6, [6, -4], { single: true });
+          hitEnemies(s, f, { x: 0, y: -74, w: 42, h: 64 }, 7, [6, -4], { single: true });
         } else endSkill(f);
       },
     },
@@ -634,7 +634,7 @@ const SKILLS = {
         f.vx *= .6;
         if (f.st === 12) {
           s.projectiles = s.projectiles.filter(p => !(p.type === 'rune' && p.owner === f.idx));
-          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 15, life: 240 });
+          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 3, chip: true, pierce: true, tickEvery: 15, life: 240 });
         }
         if (f.st >= 22) endSkill(f);
       },
@@ -689,7 +689,7 @@ const SKILLS = {
       start: noop,
       update(f, s) {
         if (f.st < 10) hover(f, .6);
-        if (f.st === 9) spawnProj(s, f, { type: 'prism', x: f.x + f.face * 40, y: f.y - 76, vx: f.face * 12, vy: 0, w: 44, h: 12, dmg: 7, kb: [5, -2], life: 60, magic: true, reflect: true });
+        if (f.st === 9) spawnProj(s, f, { type: 'prism', x: f.x + f.face * 40, y: f.y - 76, vx: f.face * 12, vy: 0, w: 44, h: 12, dmg: 9, kb: [5, -2], life: 60, magic: true, reflect: true });
         if (f.onGround) f.vx *= .8;
         if (f.st >= 22) endSkill(f);
       },
@@ -699,7 +699,7 @@ const SKILLS = {
       update(f, s, inp) {
         if (f.st < 32) {
           f.noGrav = true; f.vy = -6.5 + f.st * .13; steer(f, inp, 4, .15);
-          hitEnemies(s, f, { x: -28, y: -104, w: 56, h: 100 }, 5, [3, -7], { radial: true, magic: true, single: true });
+          hitEnemies(s, f, { x: -28, y: -104, w: 56, h: 100 }, 6, [3, -7], { radial: true, magic: true, single: true });
         } else endSkill(f);
       },
     },
