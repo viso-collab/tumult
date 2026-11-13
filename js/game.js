@@ -428,7 +428,7 @@ function updateProjectiles(s) {
           const d = Math.hypot(e.x - p.x, (e.y - CHARS[e.c].h / 2) - (p.y - 40));
           if (d < best) { best = d; o = e; }
         }
-        if (o) applyHit(s, o, 9, (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
+        if (o) applyHit(s, o, 11, (o.x >= p.x ? 1 : -1) * 7, -6, o.x, o.y - CHARS[o.c].h * .5, p.x, { magic: true });
       }
       return;
     }
@@ -484,7 +484,7 @@ function updateProjectiles(s) {
         const dir = p.radial ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || (owner ? owner.face : 1));
         const res = applyHit(s, o, p.dmg, p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
         if (p.type === 'harpoon' && res === 'hit' && owner) {   // reel the enemy in
-          o.vx = (owner.x >= o.x ? 1 : -1) * 9; o.vy = -4; o.hitstun = 26;
+          o.vx = (owner.x >= o.x ? 1 : -1) * 7; o.vy = -3; o.hitstun = 18;
           ev(s, { t: 'clang', x: o.x, y: o.y - 40 });
         }
         if (!p.pierce) { p.life = 0; break; }
@@ -523,7 +523,7 @@ const SKILLS = {
         if (f.st < 12) hover(f, .6);
         if (f.st === 8) {
           s.projectiles = s.projectiles.filter(p => !(p.type === 'wisp' && p.owner === f.idx));
-          const group = { lock: -1 }; for (let k = 0; k < 3; k++) spawnProj(s, f, { group, type: 'wisp', a0: k * TAU / 3, x: f.x, y: f.y, vx: 0, vy: 0, w: 20, h: 20, dmg: 4, kb: [4, -4], life: 240, magic: true, radial: true });
+          const group = { lock: -1 }; for (let k = 0; k < 3; k++) spawnProj(s, f, { group, type: 'wisp', a0: k * TAU / 3, x: f.x, y: f.y, vx: 0, vy: 0, w: 20, h: 20, dmg: 5, kb: [4, -4], life: 240, magic: true, radial: true });
         }
         if (f.st >= 16) endSkill(f);
       },
@@ -532,7 +532,7 @@ const SKILLS = {
       start(f) { f.vy = -12.5; f.onGround = false; },
       update(f, s, inp) {
         if (f.st === 0) f.vx = (dirOf(inp) || -f.face) * 3.5;   // backflip, or the way you hold
-        if (f.st < 20) hitEnemies(s, f, { x: -44, y: -84, w: 70, h: 84 }, 5, [5, -6], { radial: true, single: true });
+        if (f.st < 20) hitEnemies(s, f, { x: -44, y: -84, w: 70, h: 84 }, 6, [5, -6], { radial: true, single: true });
         else endSkill(f);
       },
     },
@@ -634,7 +634,7 @@ const SKILLS = {
         f.vx *= .6;
         if (f.st === 12) {
           s.projectiles = s.projectiles.filter(p => !(p.type === 'rune' && p.owner === f.idx));
-          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 3, chip: true, pierce: true, tickEvery: 15, life: 240 });
+          spawnProj(s, f, { type: 'rune', area: true, anchor: 'bottom', ground: f.onGround, plat: f.plat, x: f.x, y: f.y, vx: 0, vy: 0, w: 130, h: 50, dmg: 2, chip: true, pierce: true, tickEvery: 15, life: 240 });
         }
         if (f.st >= 22) endSkill(f);
       },

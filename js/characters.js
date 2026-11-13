@@ -590,7 +590,7 @@ const CHARS = [
     moves: {
       jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 10, y: -62, w: 42, h: 30 }, anim: 'punch', next: 'jab2' },
       jab2: { f: [4, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 8, y: -42, w: 46, h: 32 }, anim: 'kick', next: 'fin' },
-      fin: { f: [7, 5, 14], dmg: 8, kb: [6, -6], box: { x: -38, y: -90, w: 96, h: 86 }, anim: 'spin', cd: 28 },
+      fin: { f: [7, 5, 14], dmg: 9, kb: [6, -6], box: { x: -38, y: -90, w: 96, h: 86 }, anim: 'spin', cd: 28 },
     },
     skills: [
       { name: 'Foxfire', desc: 'Three spirit flames circle around you.', cd: 180 },
@@ -630,7 +630,7 @@ const CHARS = [
   },
   {
     id: 'magmor', name: 'MAGMOR', title: 'Living lava golem',
-    hp: 112, w: 68, h: 122, speed: 2.8, jump: 11, jumps: 2, grav: .72, maxFall: 14, weight: 1.45,
+    hp: 106, w: 68, h: 122, speed: 2.8, jump: 11, jumps: 2, grav: .72, maxFall: 14, weight: 1.45,
     reach: 6, shoulder: [14, -92], trail: '#ff8a3a',
     stats: { power: 5, speed: 1, jump: 2, magic: 3 },
     moves: {
@@ -676,7 +676,7 @@ const CHARS = [
   },
   {
     id: 'nightweaver', name: 'NIGHTWEAVER', title: 'Wraith of the deep woods',
-    hp: 88, w: 40, h: 112, speed: 3.9, jump: 10, jumps: 2, grav: .45, maxFall: 8, weight: .9,
+    hp: 92, w: 40, h: 112, speed: 3.9, jump: 10, jumps: 2, grav: .45, maxFall: 8, weight: .9,
     reach: 8, shoulder: [6, -86], trail: '#7dffd0',
     stats: { power: 3, speed: 3, jump: 4, magic: 3 },
     moves: {
@@ -722,7 +722,7 @@ const CHARS = [
   },
   {
     id: 'sable', name: 'SABLE', title: 'Shadow ninja cat',
-    hp: 90, w: 36, h: 86, speed: 5.4, jump: 11.5, jumps: 2, grav: .6, maxFall: 11, weight: .75,
+    hp: 96, w: 36, h: 86, speed: 5.4, jump: 11.5, jumps: 2, grav: .6, maxFall: 11, weight: .75,
     reach: 6, shoulder: [6, -52], trail: '#ff7a7a',
     stats: { power: 3, speed: 5, jump: 4, magic: 1 },
     moves: {
@@ -745,7 +745,7 @@ const CHARS = [
   },
   {
     id: 'tusk', name: 'TUSK', title: 'Walrus viking',
-    hp: 100, w: 60, h: 100, speed: 3.3, jump: 10.5, jumps: 2, grav: .7, maxFall: 13, weight: 1.4,
+    hp: 100, w: 60, h: 100, speed: 3.3, jump: 10.5, jumps: 2, grav: .7, maxFall: 13, weight: 1.3,
     reach: 6, shoulder: [12, -66], trail: '#bfe9ff',
     stats: { power: 4, speed: 2, jump: 2, magic: 1 },
     moves: {
@@ -755,7 +755,7 @@ const CHARS = [
     },
     skills: [
       { name: 'Belly Slide', desc: 'Slide forward on your belly.', cd: 100 },
-      { name: 'Harpoon Hook', desc: 'Reel an enemy in, or hook a ledge. Hold up to aim up.', cd: 110, air: true },
+      { name: 'Harpoon Hook', desc: 'Reel an enemy in, or hook a ledge. Hold up to aim up.', cd: 150, air: true },
       { name: 'Winter Horn', desc: 'A mighty blast that pushes everyone away.', cd: 200 },
     ],
     draw: drawTusk,

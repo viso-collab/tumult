@@ -17,7 +17,8 @@ function botInput(s, i) {
   if (s.screen !== 'fight' || s.phase !== 'fight') return {};
   const f = s.fighters[i];
   if (!f || f.state === 'ko' || f.gone) return {};
-  const B = BOTS[i] || (BOTS[i] = { next: 0, roll: 0, block: 0 });
+  let B = BOTS[i];
+  if (!B || B.game !== s || B.next > s.tick + 60) B = BOTS[i] = { game: s, next: 0, roll: 0, block: 0 };   // fresh memory for every new game
   const C = CHARS[f.c], m = MAPS[s.map], plats = platsAt(m, s.tick);
   const mainIdx = m.plats.findIndex(p => p.main), main = plats[mainIdx];
   const tap = s.tick % 2 === 0;   // buttons must be released between presses
