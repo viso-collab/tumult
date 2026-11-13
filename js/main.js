@@ -8,6 +8,7 @@ const codeInput = document.getElementById('join-code');
 let MODE = null;      // null | 'local' | 'host' | 'guest'
 let GAME_MODE = '1v1';
 let MY = -1;          // which slot you are online
+let SOLO = false;     // vs CPU: one player, everyone else is a bot
 let state = null;     // game state (local or on the host)
 let view = null;      // what gets drawn (for guests: latest state from the host)
 const remoteIn = {};
@@ -16,7 +17,7 @@ let acc = 0, last = performance.now();
 function setStatus(html) { statusEl.innerHTML = html; }
 function showMenu(msg) {
   Net.close();
-  MODE = null; MY = -1; state = null; view = null;
+  MODE = null; MY = -1; SOLO = false; state = null; view = null;
   menu.hidden = false; setStatus(msg || '');
 }
 function hideMenu() { menu.hidden = true; }
@@ -37,8 +38,14 @@ document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click'
 
 document.getElementById('btn-local').onclick = () => {
   Net.close();
-  MODE = 'local'; MY = -1; state = newState(GAME_MODE, false); view = state;
+  MODE = 'local'; MY = -1; SOLO = false; state = newState(GAME_MODE, false); view = state;
   for (let i = 2; i < state.players.length; i++) setCpu(state, i, true);
+  hideMenu();
+};
+document.getElementById('btn-cpu').onclick = () => {
+  Net.close();
+  MODE = 'local'; MY = 0; SOLO = true; state = newState(GAME_MODE, false, true); view = state;
+  for (let i = 1; i < state.players.length; i++) setCpu(state, i, true);
   hideMenu();
 };
 document.getElementById('btn-host').onclick = () => {
@@ -77,7 +84,14 @@ codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
 addEventListener('keydown', e => { if (e.code === 'Escape' && MODE) showMenu(''); });
 
 function hints() {
-  const local = MODE === 'local';
+  const local = MODE === 'local' && !SOLO;
+  if (SOLO) return {
+    mode: 'solo', my: 0,
+    hint: 'Move: WASD or arrows · Pick: F · Back: Q',
+    teamHint: 'Pick your fighter, then one for each CPU. Back: Q',
+    mapHint: 'Pick with A/D or ←/→ · Start: F · Back: Q',
+    again: 'Press F to play again',
+  };
   return {
     mode: local ? 'local' : 'online', my: MY,
     hint: local ? 'Move: WASD / arrows · Pick: F / K · Back: Q / U' : 'Move: WASD or arrows · Pick: F · Back: Q',
@@ -90,7 +104,7 @@ function hints() {
 function gather() {
   return state.players.map((P, i) => {
     if (P.cpu) return botInput(state, i);
-    if (MODE === 'local') return Input.slot(i);
+    if (MODE === 'local') return SOLO ? Input.any() : Input.slot(i);
     if (i === 0) return Input.any();
     return remoteIn[i] || {};
   });
@@ -100,7 +114,7 @@ function frame(now) {
   let dt = (now - last) / 1000; last = now;
   if (dt > .25) dt = .25;
   if (MODE === 'local' || MODE === 'host') {
-    if (MODE === 'local' && state.screen === 'select') {
+    if (MODE === 'local' && !SOLO && state.screen === 'select') {
       for (let i = 2; i < state.players.length; i++) setCpu(state, i, !Input.padConnected(i));
     }
     acc += dt;

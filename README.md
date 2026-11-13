@@ -1,11 +1,12 @@
 # Tumult
 
-Et platform-kampspil for 2–4 spillere i browseren. Kampene bruger HP og runder: det hold, der først vinder 2 runder, vinder kampen.
+Et platform-kampspil for 1–4 spillere i browseren. Kampene bruger HP og runder: det hold, der først vinder 2 runder, vinder kampen.
 
 Spil det her: https://viso-collab.github.io/tumult/
 
 ## Spiltyper
 
+- **Play vs CPU**: spil alene mod computeren i 1 vs 1 eller 2 vs 2. Du vælger først din egen figur og derefter en til hver CPU.
 - **1 vs 1**: to spillere på samme tastatur eller online.
 - **2 vs 2**: hold på to. Spiller 3 og 4 bruger controllere, og tomme pladser bliver styret af computeren (CPU). Online kan op til 4 deltage med samme kode.
 
@@ -33,8 +34,16 @@ Slag-knappen giver lille, lille og så stort slag. Man må gerne vente lidt (ca.
 | Lumina | Lysmagiker | Prism Bolt, Wings of Light, Mend |
 | Sable | Ninjakat | Shuriken Fan, Shadow Dash, Smoke Bomb |
 | Tusk | Hvalros-viking | Belly Slide, Harpoon Hook (træk fjender ind eller hag dig fast i en kant), Winter Horn |
+| Gloop | Sultent slimmonster | Goo Glob (klistret pøl, der gør fjender langsomme), Boing, Gulp (sluger en fjende, går igennem blokering) |
+| Tempest | Stormharpy med 3 hop | Gust (skubber langt væk), Updraft, Thunderstrike (lyn et fast stykke foran dig) |
+| Mortis | Skeletkonge | Bone Spikes, Soul Leap, Soul Drain (stjæler liv) |
+| Truffle | Lille svampedruide | Spore Cloud (gift og langsomhed), Mushroom Spring, Vine Lash (lang pisk) |
 
 Ingen angreb sigter automatisk. Alt rammer der, hvor spilleren sigter.
+
+## Baner
+
+Clover Hill, Sunscorch Mesa og Frostpeak er små baner til 1 vs 1. Skyward Ruins og Ember Caldera (vulkan med lava og to platforme, der bevæger sig) er store baner til 2 vs 2.
 
 ## Kør lokalt
 

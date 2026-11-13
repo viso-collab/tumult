@@ -11,6 +11,10 @@ const BOT_SKILLS = {
   lumina:      { far: [0],    near: [] },
   sable:       { far: [0],    near: [2] },
   tusk:        { far: [1],    near: [0, 2] },
+  gloop:       { far: [0],    near: [2] },
+  tempest:     { far: [0, 2], near: [] },
+  mortis:      { far: [0],    near: [2] },
+  truffle:     { far: [0],    near: [2] },
 };
 
 function botInput(s, i) {
@@ -43,7 +47,7 @@ function botInput(s, i) {
   // 2) pick the closest enemy
   let o = null, best = 1e9;
   for (const e of s.fighters) {
-    if (e.team === f.team || e.state === 'ko' || e.gone) continue;
+    if (e.team === f.team || e.state === 'ko' || e.gone || e.gulpT > 0) continue;
     const d = Math.abs(e.x - f.x) + Math.abs(e.y - f.y) * .7;
     if (e.stealthT > 0 && d > 120) continue;   // can't see Sable in her smoke
     if (d < best) { best = d; o = e; }

@@ -15,7 +15,7 @@
 
   <div id="menu" class="overlay">
     <h1>TUMULT</h1>
-    <p class="tag">A platform fighter for 2–4 players</p>
+    <p class="tag">A platform fighter for 1–4 players</p>
 
     <div class="modes" role="group" aria-label="Game mode">
       <button data-mode="1v1" aria-pressed="true">1 VS 1</button>
@@ -23,7 +23,10 @@
     </div>
 
     <div class="buttons">
-      <button id="btn-local">Play on this computer</button>
+      <div class="row">
+        <button id="btn-cpu">Play vs CPU</button>
+        <button id="btn-local">Local multiplayer</button>
+      </div>
       <button id="btn-host">Online: host a game</button>
       <div class="join">
         <input id="join-code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Game code">
@@ -43,7 +46,7 @@
       </div>
       <div>
         <h3>Good to know</h3>
-        <p>2 vs 2: players 3 and 4 use controllers. Empty spots are played by the CPU. Online, up to 4 people can join with the code. Esc returns to this menu.</p>
+        <p>Play vs CPU: you pick your fighter and the CPU's. 2 vs 2: players 3 and 4 use controllers. Empty spots are played by the CPU. Online, up to 4 people can join with the code. Esc returns to this menu.</p>
       </div>
     </div>
   </div>

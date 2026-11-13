@@ -243,6 +243,53 @@ function bgRuins(c, t, ox = 0, oy = 0) {
   layer(c, .2, ox, oy, () => RUINS.clouds.forEach(cl => cloud(c, cl.x + Math.sin(t * .01 + cl.x) * 6, cl.y, cl.r, '#f0c3c8')));
 }
 
+// ---------- volcano (large 2v2 stage) ----------
+const CALDERA = (() => {
+  const r = seeded(77);
+  return {
+    embers: Array.from({ length: 40 }, () => ({ x: r() * W, s: .3 + r() * .7, p: r() * 100, d: r() })),
+    rocks: Array.from({ length: 7 }, () => ({ x: r() * W, y: 120 + r() * 200, w: 30 + r() * 50 })),
+  };
+})();
+function bgCaldera(c, t, ox = 0, oy = 0) {
+  sky(c, [[0, '#1a0f24'], [.45, '#4a1a2c'], [.75, '#a8382a'], [1, '#ff8a3a']]);
+  layer(c, .03, ox, oy, () => {
+    // the big volcano with its smoke plume
+    for (let i = 0; i < 6; i++) {
+      const y = 70 - i * 26 - (t * .15 % 26), x = 480 + Math.sin(i * 1.3 + t * .005) * 24 + i * 10;
+      c.fillStyle = `rgba(60,40,55,${.5 - i * .07})`; c.beginPath(); c.arc(x, y, 40 + i * 16, 0, TAU); c.fill();
+    }
+    const g = c.createLinearGradient(0, 110, 0, 420);
+    g.addColorStop(0, '#3a2230'); g.addColorStop(1, '#1e1220');
+    c.fillStyle = g; c.beginPath(); c.moveTo(130, 420); c.lineTo(420, 120); c.lineTo(540, 120); c.lineTo(830, 420); c.closePath(); c.fill();
+    const lv = c.createLinearGradient(0, 120, 0, 300);
+    lv.addColorStop(0, '#ffd27a'); lv.addColorStop(1, 'rgba(255,90,20,0)');
+    c.fillStyle = lv;
+    c.beginPath(); c.moveTo(430, 122); c.lineTo(530, 122); c.quadraticCurveTo(520, 200, 560, 290); c.lineTo(545, 290); c.quadraticCurveTo(495, 200, 470, 160); c.quadraticCurveTo(450, 220, 405, 300); c.lineTo(395, 300); c.quadraticCurveTo(440, 190, 430, 122); c.fill();
+    sunGlow(c, 480, 118, 16, '#ffb347', '255,140,60');
+  });
+  layer(c, .08, ox, oy, () => {
+    CALDERA.rocks.forEach(rk => { c.fillStyle = 'rgba(40,24,36,.7)'; c.beginPath(); c.ellipse(rk.x, rk.y + Math.sin(t * .01 + rk.x) * 4, rk.w, rk.w * .28, 0, 0, TAU); c.fill(); });
+    c.fillStyle = '#24141f'; c.beginPath(); c.moveTo(-300, 470);
+    for (let x = -300; x <= W + 300; x += 24) c.lineTo(x, 430 - Math.abs(Math.sin(x * .013)) * 50 - hash(x) * 14);
+    c.lineTo(W + 300, 600); c.lineTo(-300, 600); c.fill();
+  });
+  layer(c, .16, ox, oy, () => {
+    // glowing lava sea
+    const lg2 = c.createLinearGradient(0, 470, 0, 560);
+    lg2.addColorStop(0, '#ffcf6a'); lg2.addColorStop(.3, '#ff6a1a'); lg2.addColorStop(1, '#7a1a08');
+    c.fillStyle = lg2; c.beginPath(); c.moveTo(-300, 600);
+    for (let x = -300; x <= W + 300; x += 20) c.lineTo(x, 482 + Math.sin(x * .03 + t * .04) * 4);
+    c.lineTo(W + 300, 600); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(255,240,180,.5)'; c.lineWidth = 2;
+    for (let i = 0; i < 8; i++) { const x = (i * 140 + t * .3) % (W + 200) - 100; c.beginPath(); c.moveTo(x, 500); c.quadraticCurveTo(x + 20, 496, x + 40, 500); c.stroke(); }
+  });
+  CALDERA.embers.forEach(e => {
+    const y = H - ((t * e.s + e.p * 6) % (H + 40)), x = e.x + Math.sin(t * .02 + e.p) * 12 - ox * .2;
+    c.fillStyle = `rgba(255,${150 + e.d * 80},60,${.4 + e.d * .5})`; c.beginPath(); c.arc(((x % W) + W) % W, y, 1 + e.d * 1.8, 0, TAU); c.fill();
+  });
+}
+
 // ---------- the stage list ----------
 // spawns: [team A #1, team B #1, team A #2, team B #2]
 const MAPS = [
@@ -298,6 +345,23 @@ const MAPS = [
     bg: bgRuins,
     style: { kind: 'ruin', top: '#8fae6a', body: '#8c8478', plank: '#a39b8c' },
   },
+  {
+    name: 'EMBER CALDERA', terrain: 'Volcano', world: { w: 1700, h: 920 }, large: true,
+    plats: [
+      { x: 420, y: 660, w: 860, solid: true, main: true },
+      { x: 110, y: 600, w: 200, solid: true },
+      { x: 1390, y: 600, w: 200, solid: true },
+      { x: 540, y: 550, w: 170 },
+      { x: 990, y: 550, w: 170 },
+      { x: 300, y: 450, w: 150, move: { amp: 120, speed: .011 } },
+      { x: 1250, y: 450, w: 150, move: { amp: -120, speed: .011 } },
+      { x: 760, y: 420, w: 180 },
+      { x: 780, y: 290, w: 140 },
+    ],
+    spawns: [[580, 660], [1120, 660], [700, 660], [1000, 660]], respawn: [850, 80],
+    bg: bgCaldera,
+    style: { kind: 'basalt', top: '#5a4650', body: '#3a2a34', plank: '#6a5560' },
+  },
 ];
 
 // platform positions at a given tick (moving platforms are computed from the tick)
@@ -345,6 +409,17 @@ function drawPlatforms(c, m, t) {
         c.fillStyle = 'rgba(255,255,255,.12)'; c.beginPath(); c.ellipse(x, y, rr * 1.4, rr, 0, 0, TAU); c.fill();
         c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(x + 1, y + 1.5, rr * 1.4, rr * .6, 0, 0, Math.PI); c.fill();
       }
+      if (S.kind === 'basalt') {
+        c.save(); c.globalCompositeOperation = 'lighter';
+        c.strokeStyle = 'rgba(255,120,40,.55)'; c.lineWidth = 2;
+        for (let i = 0; i < p.w / 70; i++) {
+          let x = p.x + 30 + r() * (p.w - 60), y = p.y + 14;
+          c.beginPath(); c.moveTo(x, y);
+          for (let k = 0; k < 4; k++) { x += (r() - .5) * 26; y += 8 + r() * 12; c.lineTo(x, y); }
+          c.stroke();
+        }
+        c.restore();
+      }
       if (S.kind === 'grass') {
         c.strokeStyle = 'rgba(60,40,20,.6)'; c.lineWidth = 1.2;
         for (let i = 0; i < p.w / 60; i++) { const x = p.x + 20 + r() * (p.w - 40); c.beginPath(); c.moveTo(x, p.y + 12); c.quadraticCurveTo(x + 6, p.y + 30, x + 2, p.y + 44); c.stroke(); }
@@ -368,12 +443,15 @@ function drawPlatforms(c, m, t) {
       } else if (S.kind === 'snow') {
         c.fillStyle = '#ffffff';
         for (let x = p.x + 10; x < p.x + p.w; x += 46) { c.beginPath(); c.ellipse(x, p.y - 3, 14, 4, 0, Math.PI, 0); c.fill(); }
+      } else if (S.kind === 'basalt') {
+        c.fillStyle = 'rgba(255,150,60,.55)';
+        for (let x = p.x + 16; x < p.x + p.w - 10; x += 52) { c.beginPath(); c.ellipse(x, p.y + 4, 9, 2, 0, 0, TAU); c.fill(); }
       } else if (S.kind === 'ruin') {
         c.fillStyle = 'rgba(70,110,50,.7)';
         for (let x = p.x; x < p.x + p.w; x += 30) { c.beginPath(); c.ellipse(x + 10, p.y + 12, 10, 4, 0, 0, Math.PI); c.fill(); }
       }
     } else {
-      const stone = S.kind === 'snow' || S.kind === 'ruin';
+      const stone = S.kind === 'snow' || S.kind === 'ruin' || S.kind === 'basalt';
       const g = c.createLinearGradient(0, p.y - 3, 0, p.y + 10);
       g.addColorStop(0, shade(S.plank, .25)); g.addColorStop(1, shade(S.plank, -.35));
       c.beginPath(); c.roundRect(p.x, p.y - 3, p.w, 13, stone ? 3 : 5); c.fillStyle = g; c.fill();

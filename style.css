@@ -73,6 +73,8 @@ button:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a1426; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--p1); outline-offset: 2px; }
 .join { display: flex; gap: 8px; }
 .join button { flex: 1; }
+.row { display: flex; gap: 10px; }
+.row button { flex: 1; }
 .join input {
   width: 110px;
   font: 400 22px 'Bungee', Impact, sans-serif;

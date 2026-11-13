@@ -127,6 +127,31 @@ function spawnFx(events) {
       case 'smoke':
         for (let i = 0; i < 26; i++) P.push({ k: 'dust', x: e.x + rnd(-50, 50), y: e.y + rnd(-50, 40), vx: rnd(-40, 40), vy: rnd(-30, 10), g: 0, life: rnd(.6, 1.1), max: 1.1, r: rnd(8, 16), col: '#5a5a6a' });
         break;
+      case 'goo':
+        for (let i = 0; i < (e.small ? 6 : 16); i++) P.push({ k: 'spark', x: e.x, y: e.y - 4, vx: rnd(-240, 240), vy: rnd(-320, -60), g: 800, life: .4, max: .4, col: i % 2 ? '#9dff8a' : '#4fc25a' });
+        if (!e.small) P.push({ k: 'ring', x: e.x, y: e.y, life: .3, max: .3, r0: 8, r1: 60, col: '#9dff8a', flat: true });
+        break;
+      case 'gulp':
+        P.push({ k: 'ring', x: e.x, y: e.y, life: .3, max: .3, r0: 50, r1: 4, col: '#9dff8a' });
+        for (let i = 0; i < 10; i++) P.push({ k: 'dust', x: e.x + rnd(-20, 20), y: e.y + rnd(-20, 20), vx: rnd(-40, 40), vy: rnd(-40, 40), g: 0, life: .4, max: .4, r: rnd(4, 8), col: '#6fdc6a' });
+        FX.shake = Math.max(FX.shake, 5);
+        break;
+      case 'wind':
+        for (let i = 0; i < 2; i++) P.push({ k: 'dust', x: e.x + rnd(-26, 26), y: e.y + rnd(-6, 6), vx: rnd(-80, 80), vy: rnd(40, 120), g: 0, life: .35, max: .35, r: rnd(3, 6), col: '#dfeaff' });
+        break;
+      case 'thunder':
+        FX.flash = Math.max(FX.flash, .35);
+        P.push({ k: 'glow', x: e.x, y: e.y - 20, life: .35, max: .35, r: 110, col: '#fff3a0' });
+        for (let i = 0; i < 20; i++) P.push({ k: 'spark', x: e.x, y: e.y - 4, vx: rnd(-320, 320), vy: rnd(-320, -40), g: 600, life: .3, max: .3, col: i % 2 ? '#ffe45c' : '#ffffff' });
+        FX.shake = Math.max(FX.shake, 9);
+        break;
+      case 'soul':
+        for (let i = 0; i < 3; i++) P.push({ k: 'dust', x: e.x + rnd(-14, 14), y: e.y + rnd(-20, 20), vx: rnd(-20, 20), vy: rnd(-90, -30), g: 0, life: .5, max: .5, r: rnd(3, 7), col: '#7dffb0' });
+        break;
+      case 'boing':
+        P.push({ k: 'ring', x: e.x, y: e.y, life: .3, max: .3, r0: 6, r1: 44, col: '#ffd27a', flat: true });
+        for (let i = 0; i < 6; i++) P.push(dust(e.x, e.y));
+        break;
       case 'down': P.push({ k: 'ring', x: e.x, y: e.y - 30, life: .4, max: .4, r0: 10, r1: 80, col: '#ff5d4d' }); FX.shake = Math.max(FX.shake, 8); break;
       case 'ko': FX.flash = 1; FX.shake = Math.max(FX.shake, 14); break;
     }
@@ -301,6 +326,87 @@ function drawProj(c, p, t, s) {
         fillP(c, () => c.arc(p.x, p.y, 9, 0, TAU), '#24173c');
       }
       break;
+    case 'goo':
+      glow(c, p.x, p.y, 26, '#6fdc6a', .5);
+      part(c, () => c.ellipse(p.x, p.y, 12, 10, p.age * .2, 0, TAU), (() => { const g = c.createRadialGradient(p.x - 4, p.y - 4, 1, p.x, p.y, 12); g.addColorStop(0, '#d8ffd0'); g.addColorStop(.5, '#5fd16a'); g.addColorStop(1, '#2f8f4a'); return g; })(), 1.6);
+      break;
+    case 'puddle': {
+      c.translate(p.x, p.y); c.globalAlpha = Math.min(1, p.life / 30, p.age / 6);
+      const g = c.createRadialGradient(0, 0, 4, 0, 0, 46);
+      g.addColorStop(0, '#b8f5a8'); g.addColorStop(.5, '#5fd16a'); g.addColorStop(1, 'rgba(47,143,74,.6)');
+      c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, 46, 7, 0, 0, TAU); c.fill();
+      for (let i = 0; i < 3; i++) { const ph = (p.age * .025 + i * .33) % 1; c.fillStyle = `rgba(220,255,210,${1 - ph})`; c.beginPath(); c.arc(-24 + i * 24, -2 - ph * 6, 2 + ph * 2, 0, TAU); c.fill(); }
+      break;
+    }
+    case 'gust': {
+      c.translate(p.x, p.y); c.scale(d, 1);
+      c.globalAlpha = Math.min(1, p.life / 12);
+      c.strokeStyle = 'rgba(225,238,255,.9)'; c.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const r = 8 + i * 5, a = p.age * .4 + i;
+        c.lineWidth = 3 - i * .5; c.beginPath(); c.arc(-i * 6, 0, r, a, a + 4.2); c.stroke();
+      }
+      c.strokeStyle = 'rgba(200,220,255,.6)'; c.lineWidth = 2;
+      [-14, 0, 14].forEach(y => { c.beginPath(); c.moveTo(-40, y); c.lineTo(-14, y * .7); c.stroke(); });
+      break;
+    }
+    case 'cloud': {
+      c.globalAlpha = Math.min(1, p.age / 8, p.life / 8);
+      cloud(c, p.x, p.y, 20, '#5a6080');
+      glow(c, p.x, p.y + 10, 40, '#ffe45c', .25 + (p.age % 6 < 3 ? .2 : 0));
+      c.globalAlpha *= .5; c.strokeStyle = '#ffe45c'; c.setLineDash([6, 6]); c.lineWidth = 2;
+      c.beginPath(); c.moveTo(p.x, p.y + 20); c.lineTo(p.x, p.y + 210); c.stroke(); c.setLineDash([]);
+      break;
+    }
+    case 'thunder': {
+      const k = p.life / 10, top = p.y - p.h;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for (let w = 0; w < 3; w++) {
+        c.strokeStyle = w === 2 ? '#ffffff' : `rgba(255,228,92,${.6 * k})`; c.lineWidth = [14, 7, 3][w] * k + 1;
+        c.beginPath(); c.moveTo(p.x, top);
+        for (let i = 1; i <= 8; i++) c.lineTo(p.x + (i < 8 ? (hash(i + p.age * 7) - .5) * 30 : 0), top + i * p.h / 8);
+        c.stroke();
+      }
+      c.restore();
+      glow(c, p.x, p.y - 10, 60, '#ffe45c', .7 * k);
+      break;
+    }
+    case 'spikes': {
+      c.translate(p.x, p.y); c.scale(d, 1);
+      for (let i = 0; i < 4; i++) {
+        const x = -i * 16, h = Math.max(0, 44 - i * 12) * Math.min(1, p.age / 4);
+        if (h < 2) continue;
+        part(c, () => { c.moveTo(x - 7, 0); c.lineTo(x - 1, -h); c.lineTo(x + 7, 0); c.closePath(); }, lg(c, fake, x - 7, -h, x + 7, 0, '#e9e1c8', .35), 1.4);
+      }
+      glow(c, 0, -10, 30, '#7dffb0', .35);
+      break;
+    }
+    case 'bone':
+      c.translate(p.x, p.y); c.rotate(p.age * .4);
+      seg(c, fake, -10, 0, 10, 0, 4, '#e9e1c8');
+      [[-11, -3], [-11, 3], [11, -3], [11, 3]].forEach(([x, y]) => part(c, () => c.arc(x, y, 3.4, 0, TAU), '#e9e1c8', 1));
+      break;
+    case 'spore': {
+      const a = Math.min(1, p.life / 25, p.age / 8);
+      for (let i = 0; i < 7; i++) {
+        const x = p.x + Math.sin(i * 2.3 + p.age * .05) * 22, y = p.y + Math.cos(i * 1.9 + p.age * .04) * 16, r = 14 + (i % 3) * 4;
+        const g = c.createRadialGradient(x, y, 1, x, y, r);
+        g.addColorStop(0, `rgba(205,170,255,${.6 * a})`); g.addColorStop(1, 'rgba(150,110,220,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+      }
+      c.fillStyle = `rgba(255,240,180,${a})`;
+      for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(p.x + Math.sin(i * 3.1 + p.age * .08) * 26, p.y + Math.cos(i * 2.7 + p.age * .07) * 20, 1.6, 0, TAU); c.fill(); }
+      break;
+    }
+    case 'shroom': {
+      c.translate(p.x, p.y);
+      const k = p.age < 5 ? p.age / 5 : 1, sq = p.age < 10 ? 1 + Math.sin(p.age * .9) * .25 : 1;
+      c.globalAlpha = Math.min(1, p.life / 10); c.scale(k * sq, k / sq);
+      part(c, () => c.roundRect(-8, -20, 16, 20, 4), lg(c, fake, -8, -20, 8, 0, '#efe0c8'), 1.4);
+      part(c, () => { c.moveTo(-30, -16); c.quadraticCurveTo(-28, -40, 0, -42); c.quadraticCurveTo(28, -40, 30, -16); c.quadraticCurveTo(0, -22, -30, -16); c.closePath(); }, lg(c, fake, -30, -42, 30, -16, '#d8443c', .3), 1.8);
+      [[-14, -28], [4, -34], [18, -24]].forEach(([x, y]) => fillP(c, () => c.arc(x, y, 3.5, 0, TAU), '#fff4e2'));
+      break;
+    }
     case 'prism':
       c.translate(p.x, p.y); c.scale(d, 1);
       glow(c, 0, 0, 34, '#9ff3ff', .8);
@@ -362,41 +468,48 @@ function drawSelect(c, s, o) {
   const t = s.tick;
   MAPS[s.map].bg(c, t); dim(c, .66);
   txt(c, 'CHOOSE YOUR FIGHTER', W / 2, 44, 30, '#fff', 'center', 7);
-  txt(c, o.hint, W / 2, 68, 12, '#c9c5f0', 'center', 0, true);
+  const picking = s.solo ? s.players.findIndex(P => !P.ready) : -1;
+  if (picking > 0) {
+    const ally = s.players[picking].team === s.players[0].team;
+    txt(c, `NOW PICK FOR THE CPU ${ally ? '(YOUR TEAMMATE)' : '(OPPONENT)'}  ·  BACK: Q`, W / 2, 69, 12, pcol(s, picking), 'center', 3);
+  } else txt(c, o.hint, W / 2, 68, 12, '#c9c5f0', 'center', 0, true);
   if (s.code) txt(c, 'CODE: ' + s.code, W - 16, 26, 16, '#ffb627', 'right', 4);
 
-  const cw = 88, ch = 88, gap = 8, gx = W / 2 - (COLS * cw + (COLS - 1) * gap) / 2, gy = 88;
+  const two = s.players.length === 2, COLS = gridCols(s), ROWS = Math.ceil(CHARS.length / COLS);
+  const cw = two ? 88 : 70, ch = cw, gap = two ? 8 : 6, gx = W / 2 - (COLS * cw + (COLS - 1) * gap) / 2, gy = two ? 82 : 80;
   CHARS.forEach((C, i) => {
     const x = gx + (i % COLS) * (cw + gap), y = gy + Math.floor(i / COLS) * (ch + gap);
     c.save();
     c.beginPath(); c.roundRect(x, y, cw, ch, 12);
     const g = c.createLinearGradient(0, y, 0, y + ch); g.addColorStop(0, '#34315e'); g.addColorStop(1, '#1d1b3a');
     c.fillStyle = g; c.fill(); c.clip();
-    drawCharPreview(c, i, x + cw / 2, y + ch - 10, .52, t, 'idle', 1);
+    drawCharPreview(c, i, x + cw / 2, y + ch - 8, two ? .52 : .42, t, 'idle', 1);
     c.restore();
     c.strokeStyle = '#4a4680'; c.lineWidth = 2; c.beginPath(); c.roundRect(x, y, cw, ch, 12); c.stroke();
-    txt(c, C.name, x + 7, y + 15, 9, '#fff', 'left', 3);
+    c.font = '9px Bungee, Impact, sans-serif';
+    txt(c, C.name, x + 6, y + 14, Math.min(9, 9 * (cw - 10) / c.measureText(C.name).width), '#fff', 'left', 3);
     let n = 0;
     s.players.forEach((P, pi) => {
-      if (P.char !== i) return;
+      if (P.char !== i || (picking >= 0 && pi > picking)) return;
+      if (pi === picking && (t >> 4) % 2) return;   // blink while choosing
       const ins = n * 4, colr = pcol(s, pi);
       c.strokeStyle = colr; c.lineWidth = 3.5;
       c.beginPath(); c.roundRect(x - 3 + ins, y - 3 + ins, cw + 6 - ins * 2, ch + 6 - ins * 2, 14); c.stroke();
       const lab = slotLabel(s, pi, o);
       c.font = '10px Bungee, Impact, sans-serif';
-      const tw = c.measureText(lab).width + 10, tx = x + 4 + n * 28;
+      const tw = c.measureText(lab).width + 10, tx = x + 4 + n * (two ? 28 : 18);
       c.fillStyle = colr; c.beginPath(); c.roundRect(tx, y + ch - 20, tw, 16, 5); c.fill();
       txt(c, lab, tx + tw / 2, y + ch - 8, 10, '#140e1e', 'center');
       n++;
     });
   });
 
-  if (s.players.length === 2) {
+  if (two) {
     // how to fight
-    const ly = gy + 2 * (ch + gap) + 22;
-    txt(c, 'HOW TO FIGHT', W / 2, ly, 14, '#ffb627', 'center', 4);
-    ['Attack 3 times for a combo: small, small, big.', 'You can wait a moment between hits.', 'After the big hit there is a short pause.', '3 extra attacks, each with its own cooldown.', 'Hold down to block. Falling off costs 15 HP.']
-      .forEach((l, k) => txt(c, l, W / 2, ly + 20 + k * 17, 12, '#d8d4ff', 'center', 0, true));
+    const ly = gy + ROWS * (ch + gap) + 18;
+    txt(c, 'HOW TO FIGHT', W / 2, ly, 13, '#ffb627', 'center', 4);
+    ['Attack ×3: small, small, big.', 'Then a short pause.', '3 extra attacks with cooldowns.', 'Hold down to block.', 'Falling off costs 15 HP.']
+      .forEach((l, k) => txt(c, l, W / 2, ly + 18 + k * 15, 11, '#d8d4ff', 'center', 0, true));
     [0, 1].forEach(pi => {
       const P = s.players[pi], C = CHARS[P.char], cx = pi === 0 ? 150 : W - 150, colr = pcol(s, pi);
       txt(c, pi === o.my ? 'YOU' : (P.cpu ? slotLabel(s, pi, o) : 'PLAYER ' + (pi + 1)), cx, 100, 15, colr, 'center', 4);
@@ -407,7 +520,7 @@ function drawSelect(c, s, o) {
       statRows(c, C, cx, 364, colr, 13);
       C.skills.forEach((sk, k) => {
         const y = 442 + k * 30;
-        const bw = keyBadge(c, cx - 128, y, keyFor(s, pi, k + 1, o), '#ffb627');
+        const bw = keyBadge(c, cx - 128, y, P.cpu ? '•' : keyFor(s, pi, k + 1, o), '#ffb627');
         txt(c, sk.name.toUpperCase(), cx - 128 + bw + 6, y + 1, 11, '#ffb627', 'left', 3);
         txt(c, sk.desc, cx - 128 + bw + 6, y + 15, 10.5, '#d8d4ff', 'left', 0, true);
       });
@@ -420,7 +533,7 @@ function drawSelect(c, s, o) {
       const names = s.players.map((P, i) => P.team === tm ? slotLabel(s, i, o) : null).filter(Boolean).join(' + ');
       txt(c, names, cx, 196, 14, '#e2dfff', 'center', 0, true);
     });
-    txt(c, o.teamHint, W / 2, gy + 2 * (ch + gap) + 6, 11, '#c9c5f0', 'center', 0, true);
+    txt(c, o.teamHint, W / 2, gy + ROWS * (ch + gap) + 8, 11, '#c9c5f0', 'center', 0, true);
     const order = [0, 1, 2, 3].sort((a, b) => s.players[a].team - s.players[b].team || a - b);
     order.forEach((pi, k) => {
       const P = s.players[pi], C = CHARS[P.char], colr = pcol(s, pi);
@@ -442,7 +555,8 @@ function drawMapSelect(c, s, o) {
   MAPS[s.map].bg(c, t); dim(c, .6);
   txt(c, 'CHOOSE A STAGE', W / 2, 60, 32, '#fff', 'center', 7);
   txt(c, o.mapHint, W / 2, 86, 12, '#c9c5f0', 'center', 0, true);
-  const cw = 210, ch = 118, gap = 16, x0 = (W - (cw * MAPS.length + gap * (MAPS.length - 1))) / 2, y = 140;
+  const gap = 14, cw = Math.min(210, (W - 50 - gap * (MAPS.length - 1)) / MAPS.length), ch = cw * .5625;
+  const x0 = (W - (cw * MAPS.length + gap * (MAPS.length - 1))) / 2, y = 140;
   MAPS.forEach((m, i) => {
     const x = x0 + i * (cw + gap), sel = i === s.map;
     c.save();
@@ -457,7 +571,8 @@ function drawMapSelect(c, s, o) {
       c.fillStyle = '#ffb627'; c.beginPath(); c.roundRect(x + cw - 92, y + 6, 86, 16, 5); c.fill();
       txt(c, 'BEST FOR 2V2', x + cw - 49, y + 18, 9, '#140e1e', 'center');
     }
-    txt(c, m.name, x + cw / 2, y + ch + 26, 14, sel ? '#ffb627' : '#fff', 'center', 4);
+    c.font = '14px Bungee, Impact, sans-serif';
+    txt(c, m.name, x + cw / 2, y + ch + 26, Math.min(14, 14 * (cw + 8) / c.measureText(m.name).width), sel ? '#ffb627' : '#fff', 'center', 4);
     txt(c, m.terrain + (m.large ? ' · large' : ''), x + cw / 2, y + ch + 44, 12, '#c9c5f0', 'center', 0, true);
   });
   [0, 1].forEach(tm => {
@@ -576,7 +691,7 @@ function drawFight(c, s, dt, o) {
   });
   order.forEach(i => drawFighter(c, s.fighters[i], s.tick));
   s.fighters.forEach((f, i) => {
-    if (f.state === 'ko' || f.gone || f.stealthT > 0) return;
+    if (f.state === 'ko' || f.gone || f.stealthT > 0 || f.gulpT > 0) return;
     const C = CHARS[f.c], y = f.y - C.h - 20, colr = TEAM_COL[f.team];
     c.fillStyle = colr; c.strokeStyle = '#140e1e'; c.lineWidth = 2;
     c.beginPath(); c.moveTo(f.x - 6, y + 4); c.lineTo(f.x + 6, y + 4); c.lineTo(f.x, y + 11); c.closePath(); c.fill(); c.stroke();
@@ -586,7 +701,7 @@ function drawFight(c, s, dt, o) {
   c.restore();
   // markers for fighters outside the view
   s.fighters.forEach((f, i) => {
-    if (f.state === 'ko' || f.gone || f.stealthT > 0) return;
+    if (f.state === 'ko' || f.gone || f.stealthT > 0 || f.gulpT > 0) return;
     const sx = (f.x - CAM.x) * CAM.z + W / 2, sy = (f.y - CHARS[f.c].h / 2 - CAM.y) * CAM.z + H / 2;
     if (sx > -10 && sx < W + 10 && sy > -10 && sy < H + 10) return;
     const cx = Math.max(22, Math.min(W - 22, sx)), cy = Math.max(100, Math.min(H - 22, sy));

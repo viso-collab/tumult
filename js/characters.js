@@ -578,6 +578,210 @@ function drawTusk(c, f, p, t) {
   part(c, () => c.ellipse(fa[0], fa[1], 8, 6.5, p.armF, 0, TAU), rg(c, p, fa[0], fa[1], 8, skin));
 }
 
+// ============ GLOOP — slime monster (cute / monster) ============
+function drawGloop(c, f, p, t) {
+  const goo = '#5fd16a', gooD = '#2f8f4a';
+  const full = f.fullT > 0, gulping = f.state === 'skill' && f.sk === 2 && f.st >= 6 && f.st < 16;
+  const wob = Math.sin(t * .12) * 2.5, squish = f.state === 'run' ? Math.sin(t * .44) * 3 : 0;
+  const ba = limb2(c, p, -18, -22, p.armB, 11, p.armB + p.elbB, 11, 10, 8, gooD);
+  fillP(c, () => c.arc(ba[0], ba[1], 6, 0, TAU), col(p, gooD));
+  const top = -64 - wob + squish, bw = 34 + (full ? 7 : 0);
+  const body = () => {
+    c.moveTo(-bw, 0); c.bezierCurveTo(-bw - 6, -30, -22, top, 4, top); c.bezierCurveTo(30, top, bw + 8, -30, bw, 0);
+    c.quadraticCurveTo(0, 5, -bw, 0); c.closePath();
+  };
+  c.save(); c.globalAlpha *= .9;
+  part(c, body, rg(c, p, -2, -36, 46, goo), 2.2);
+  c.restore();
+  c.save(); c.beginPath(); body(); c.clip();
+  if (!p.flash) {
+    if (full) fillP(c, () => c.ellipse(-2, -28, 22, 19, Math.sin(t * .2) * .3, 0, TAU), 'rgba(25,45,35,.5)');
+    else {   // a fish bone and a coin floating inside
+      c.strokeStyle = 'rgba(245,245,225,.6)'; c.lineWidth = 2; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-24, -20); c.lineTo(-6, -16); c.stroke();
+      for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(-20 + i * 5, -24 + i); c.lineTo(-18 + i * 5, -13 + i); c.stroke(); }
+      fillP(c, () => c.ellipse(-16, -42, 5, 4, .3, 0, TAU), 'rgba(255,210,80,.7)');
+    }
+    for (let i = 0; i < 5; i++) {
+      const ph = (t * .01 + i * .21) % 1;
+      fillP(c, () => c.arc(-20 + i * 9, -6 - ph * 52, 1.5 + i % 2, 0, TAU), `rgba(230,255,220,${.6 * (1 - ph)})`);
+    }
+  }
+  c.restore();
+  if (!p.flash) fillP(c, () => c.ellipse(-14, top + 15, 10, 5, -.5, 0, TAU), 'rgba(255,255,255,.5)');
+  // drips along the bottom
+  for (let i = 0; i < 3; i++) {
+    const x = -22 + i * 20, d = 4 + Math.sin(t * .08 + i * 2) * 3;
+    fillP(c, () => { c.moveTo(x - 4, -2); c.quadraticCurveTo(x, d + 4, x + 4, -2); c.closePath(); }, col(p, gooD));
+  }
+  // face
+  realEye(c, p, 8, -42, 7, 8, '#2a4a8a');
+  realEye(c, p, 24, -42, 6, 7.5, '#2a4a8a');
+  brows(c, p, [[8, -53, 5], [24, -52, 5]], '#1f5e32');
+  if (gulping) part(c, () => c.ellipse(18, -24, 11, 9, 0, 0, TAU), '#1e3a2a', 2);
+  else mouth(c, p, 16, -27, 1.2);
+  // a little leaf sprout on top
+  part(c, () => { c.moveTo(2, top + 1); c.quadraticCurveTo(-10, top - 14, -2, top - 18); c.quadraticCurveTo(4, top - 8, 2, top + 1); }, lg(c, p, -8, top - 18, 4, top, '#8bdc4a'), 1.4);
+  const fa = limb2(c, p, 26, -20, p.armF, 11, p.armF + p.elbF, 11 + p.ext * .5, 10, 8, goo);
+  fillP(c, () => c.arc(fa[0], fa[1], 6.5, 0, TAU), col(p, goo));
+}
+
+// ============ TEMPEST — storm harpy (magic) ============
+function drawTempest(c, f, p, t) {
+  const fea = '#3f5f96', skin = '#d7a882', tunic = '#e9e2cc', gold = '#e8c35a', hair = '#eef2ff', bolt = '#ffe45c', talon = '#c9a050';
+  const flap = !f.onGround || (f.state === 'skill' && f.sk === 1) ? Math.sin(t * .35) : Math.sin(t * .06) * .25;
+  const wing = (ox, a, base) => {
+    c.save(); c.translate(ox, -72); c.rotate(a);
+    part(c, () => {
+      c.moveTo(0, 0); c.quadraticCurveTo(-30, -38, -66, -34); c.lineTo(-56, -24); c.lineTo(-70, -16);
+      c.lineTo(-54, -8); c.lineTo(-62, 2); c.lineTo(-42, 6); c.quadraticCurveTo(-20, 12, 0, 8); c.closePath();
+    }, lg(c, p, -64, -34, 0, 8, base, .3), 1.8);
+    if (!p.flash) {
+      c.strokeStyle = 'rgba(15,25,60,.4)'; c.lineWidth = 1;
+      [[-54, -22], [-52, -8], [-40, 4]].forEach(([x, y]) => { c.beginPath(); c.moveTo(-6, 2); c.lineTo(x, y); c.stroke(); });
+      c.strokeStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.moveTo(-4, -2); c.quadraticCurveTo(-30, -30, -60, -30); c.stroke();
+    }
+    c.restore();
+  };
+  wing(-8, -.3 + flap * .45, shade(fea, -.18));
+  // back leg (bird leg with talons)
+  part(c, () => c.ellipse(-4, -34, 8, 9, 0, 0, TAU), lg(c, p, -12, -42, 4, -26, shade(fea, -.1)), 1.4);
+  const bl = limb2(c, p, -4, -30, p.legB, 14, p.legB - p.kneeB, 14, 4.5, 3.5, talon);
+  claws(c, p, bl[0], bl[1], 1.2 + p.legB, '#3a3020');
+  const ba = limb2(c, p, -6, -68, p.armB, 13, p.armB + p.elbB, 12, 5.5, 4.5, shade(skin, -.12));
+  fillP(c, () => c.arc(ba[0], ba[1], 3.4, 0, TAU), col(p, shade(skin, -.12)));
+  wing(0, -.05 + flap * .5, fea);
+  // body
+  part(c, () => { c.moveTo(-11, -76); c.quadraticCurveTo(-15, -50, -12, -30); c.lineTo(13, -30); c.quadraticCurveTo(15, -52, 11, -76); c.closePath(); }, lg(c, p, -12, -76, 13, -30, tunic, .25));
+  part(c, () => c.roundRect(-13, -48, 26, 5, 2), lg(c, p, 0, -48, 0, -43, gold), 1.2);
+  if (!p.flash) { c.strokeStyle = fea; c.lineWidth = 2; c.beginPath(); c.moveTo(-6, -74); c.lineTo(0, -62); c.lineTo(6, -74); c.stroke(); }
+  part(c, () => c.ellipse(5, -34, 8, 9, 0, 0, TAU), lg(c, p, -3, -42, 13, -26, fea), 1.4);
+  const fl = limb2(c, p, 5, -30, p.legF, 14, p.legF - p.kneeF, 14, 4.5, 3.5, talon);
+  claws(c, p, fl[0], fl[1], 1.2 + p.legF, '#3a3020');
+  // head
+  const hp = []; for (let i = 0; i < 6; i++) hp.push([-2 - i * 5, -92 + i * 2.5 + Math.sin(t * .15 - i * .6) * i * .6]);
+  ribbon(c, p, hp, 12, 3, hair);
+  part(c, () => c.arc(5, -86, 11, 0, TAU), rg(c, p, 3, -89, 11, skin));
+  part(c, () => { c.moveTo(-6, -92); c.quadraticCurveTo(4, -104, 16, -92); c.quadraticCurveTo(8, -96, 2, -94); c.quadraticCurveTo(-2, -88, -6, -92); c.closePath(); }, lg(c, p, -6, -104, 16, -90, hair, .2), 1.4);
+  part(c, () => { c.moveTo(0, -97); c.lineTo(-6, -112); c.lineTo(4, -100); c.closePath(); }, col(p, hair), 1.2);
+  part(c, () => { c.moveTo(4, -98); c.lineTo(2, -114); c.lineTo(9, -100); c.closePath(); }, col(p, fea), 1.2);
+  realEye(c, p, 10, -87, 3.4, 3, '#e8b31a');
+  brows(c, p, [[10, -92, 4.5]], '#9aa6c8');
+  mouth(c, p, 11, -79, .8);
+  fillP(c, () => { c.moveTo(-1, -82); c.lineTo(2, -78); c.lineTo(0, -78); c.lineTo(3, -73); c.lineTo(-2, -78); c.lineTo(0, -78); c.closePath(); }, col(p, bolt));
+  // front arm
+  const fa = limb2(c, p, 6, -68, p.armF, 13, p.armF + p.elbF, 12 + p.ext * .5, 5.5, 4.5, skin);
+  part(c, () => c.roundRect(fa[2] - 4, fa[3] - 2, 8, 6, 2), col(p, gold), 1);
+  if (p.glow > 0) { orb(c, p, fa[0] + 4, fa[1], 4 + p.glow * 3, bolt); }
+  fillP(c, () => c.arc(fa[0], fa[1], 3.6, 0, TAU), col(p, skin));
+}
+
+// ============ MORTIS — skeleton king (dark / villain) ============
+function drawMortis(c, f, p, t) {
+  const bone = '#e9e1c8', robe = '#3d2650', robeD = '#22142d', gold = '#c9a24a', soul = '#7dffb0';
+  const sway = Math.sin(t * .07) * 3 + (f.state === 'run' ? -6 : 0);
+  // cape
+  part(c, () => {
+    c.moveTo(-8, -98); c.quadraticCurveTo(-36, -64, -34 + sway, -8);
+    for (let i = 0; i < 5; i++) c.lineTo(-30 + sway + i * 8, i % 2 ? -2 : -12);
+    c.lineTo(6, -6); c.quadraticCurveTo(2, -60, 8, -98); c.closePath();
+  }, lg(c, p, -36, -98, 8, -4, robeD, .2));
+  const ba = limb2(c, p, -6, -90, p.armB, 18, p.armB + p.elbB, 17, 4.5, 3.5, shade(bone, -.15));
+  fillP(c, () => c.arc(ba[2], ba[3], 3.4, 0, TAU), col(p, shade(bone, -.15)));
+  claws(c, p, ba[0], ba[1], p.armB + p.elbB, shade(bone, -.15));
+  // bony legs
+  [[-6, p.legB, p.kneeB, shade(bone, -.15)], [6, p.legF, p.kneeF, bone]].forEach(([x, a, k, cc]) => {
+    const l = limb2(c, p, x, -46, a, 23, a - k, 23, 4.5, 3.5, cc);
+    fillP(c, () => c.arc(l[2], l[3], 3.4, 0, TAU), col(p, cc));
+    part(c, () => c.ellipse(l[0] + 4, l[1], 7, 2.6, 0, 0, TAU), col(p, cc), 1.2);
+  });
+  // robe
+  part(c, () => {
+    c.moveTo(-15, -96); c.lineTo(15, -96); c.lineTo(20 + p.legF * 5, -30);
+    for (let i = 0; i <= 6; i++) c.lineTo(20 + p.legF * 5 - i * (40 + (p.legF - p.legB) * 5) / 6, i % 2 ? -22 : -32);
+    c.closePath();
+  }, lg(c, p, -16, -96, 20, -24, robe, .25));
+  // open chest: ribcage
+  fillP(c, () => { c.moveTo(-6, -94); c.lineTo(10, -94); c.lineTo(4, -68); c.lineTo(0, -68); c.closePath(); }, col(p, '#120a18'));
+  if (!p.flash) {
+    c.strokeStyle = bone; c.lineWidth = 2; c.lineCap = 'round';
+    for (let i = 0; i < 4; i++) { const y = -90 + i * 6; c.beginPath(); c.moveTo(-3 + i, y); c.quadraticCurveTo(2, y + 2, 7 - i, y); c.stroke(); }
+    glow(c, 2, -80, 14, soul, .35 + Math.sin(t * .1) * .15);
+  }
+  part(c, () => c.roundRect(-16, -66, 32, 6, 2), lg(c, p, 0, -66, 0, -60, gold), 1.3);
+  fillP(c, () => c.arc(0, -63, 3, 0, TAU), col(p, soul));
+  // pauldrons
+  part(c, () => { c.moveTo(-14, -98); c.quadraticCurveTo(-2, -108, 14, -98); c.lineTo(18, -90); c.lineTo(-18, -90); c.closePath(); }, lg(c, p, -18, -108, 18, -90, '#4a4458', .3), 1.4);
+  [-14, 0, 14].forEach(x => part(c, () => { c.moveTo(x - 3, -100); c.lineTo(x, -110); c.lineTo(x + 3, -100); c.closePath(); }, col(p, bone), 1));
+  // skull with crown
+  part(c, () => { c.arc(6, -110, 12, Math.PI * .85, Math.PI * .15); c.lineTo(14, -98); c.lineTo(-1, -98); c.closePath(); }, rg(c, p, 3, -114, 13, bone));
+  fillP(c, () => c.ellipse(4, -110, 3.6, 4.2, 0, 0, TAU), col(p, '#120a18'));
+  fillP(c, () => c.ellipse(13, -110, 3, 4, 0, 0, TAU), col(p, '#120a18'));
+  if (p.eyes !== 'closed') glowEyes(c, p, [[4.5, -110], [13, -110]], soul, 1.8, 1.8);
+  fillP(c, () => { c.moveTo(9, -105); c.lineTo(11, -101); c.lineTo(7, -101); c.closePath(); }, col(p, '#120a18'));
+  if (!p.flash) { c.strokeStyle = OUTC; c.lineWidth = 1; for (let x = 2; x <= 14; x += 3) { c.beginPath(); c.moveTo(x, -99); c.lineTo(x, -95); c.stroke(); } }
+  part(c, () => c.roundRect(0, -99, 15, 5, 2), col(p, shade(bone, -.1)), 1.2);
+  part(c, () => {
+    c.moveTo(-5, -117); c.lineTo(-6, -129); c.lineTo(0, -122); c.lineTo(5, -132); c.lineTo(10, -122); c.lineTo(15, -130); c.lineTo(17, -117); c.closePath();
+  }, lg(c, p, -6, -132, 17, -117, gold, .35), 1.4);
+  fillP(c, () => c.arc(5, -121, 2, 0, TAU), col(p, soul));
+  // front arm
+  const fa = limb2(c, p, 8, -90, p.armF, 18, p.armF + p.elbF, 17 + p.ext * .4, 4.5, 3.5, bone);
+  fillP(c, () => c.arc(fa[2], fa[3], 3.6, 0, TAU), col(p, bone));
+  part(c, () => c.ellipse(fa[2] - 2, fa[3] - 3, 7, 5, p.armF, 0, TAU), lg(c, p, fa[2] - 8, fa[3] - 8, fa[2] + 6, fa[3] + 2, robe), 1.2);
+  claws(c, p, fa[0], fa[1], p.armF + p.elbF, bone);
+  if (p.glow > 0) glow(c, fa[0] + 6, fa[1], 18 + p.glow * 10, soul, .5 * p.glow);
+  // soul drain beam
+  if (f.state === 'skill' && f.sk === 2 && f.st >= 10 && f.st < 50 && !p.flash) {
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      c.strokeStyle = k === 2 ? '#e8fff0' : `rgba(125,255,176,${.5 - k * .12})`; c.lineWidth = 9 - k * 3;
+      c.beginPath(); c.moveTo(fa[0], fa[1]);
+      for (let x = 0; x <= 110; x += 10) c.lineTo(fa[0] + x, fa[1] + Math.sin(x * .12 - t * .6 + k) * (4 + x * .05));
+      c.stroke();
+    }
+    c.restore();
+  }
+}
+
+// ============ TRUFFLE — mushroom kid (cute / nature) ============
+function drawTruffle(c, f, p, t) {
+  const skin = '#f2d2b0', cap = '#d8443c', spot = '#fff4e2', vest = '#5d8a3a', shorts = '#7a5636', vine = '#4f9a3a';
+  const bl = limb2(c, p, -4, -22, p.legB, 10, p.legB - p.kneeB, 11, 6, 5, shade(skin, -.12));
+  part(c, () => c.ellipse(bl[0] + 3, bl[1], 5.5, 3, 0, 0, TAU), col(p, '#5a3a22'), 1.3);
+  const ba = limb2(c, p, -6, -40, p.armB, 9, p.armB + p.elbB, 9, 5, 4.5, shade(skin, -.12));
+  fillP(c, () => c.arc(ba[0], ba[1], 3.2, 0, TAU), col(p, shade(skin, -.12)));
+  part(c, () => c.roundRect(-10, -28, 20, 9, 3), lg(c, p, 0, -28, 0, -19, shorts), 1.4);
+  part(c, () => c.ellipse(0, -35, 11, 12, 0, 0, TAU), lg(c, p, -11, -47, 11, -23, vest, .3));
+  if (!p.flash) { [[-4, -38], [3, -32]].forEach(([x, y]) => fillP(c, () => c.ellipse(x, y, 3, 1.6, .6, 0, TAU), '#8bc45a')); }
+  const fl = limb2(c, p, 4, -22, p.legF, 10, p.legF - p.kneeF, 11, 6, 5, skin);
+  part(c, () => c.ellipse(fl[0] + 3, fl[1], 6, 3, 0, 0, TAU), col(p, '#5a3a22'), 1.3);
+  // head
+  part(c, () => c.arc(4, -52, 11, 0, TAU), rg(c, p, 2, -55, 11, skin));
+  realEye(c, p, 8, -53, 3.4, 4, '#4a7a2a');
+  realEye(c, p, 15, -53, 3, 3.8, '#4a7a2a');
+  if (!p.flash) fillP(c, () => c.ellipse(13, -47, 3, 1.8, 0, 0, TAU), 'rgba(240,120,110,.5)');
+  brows(c, p, [[8, -59, 3.5], [15, -59, 3]], '#6a3a20');
+  mouth(c, p, 11, -45, .8);
+  // big mushroom cap
+  const bob = (f.state === 'run' ? Math.sin(t * .44) * 1.5 : 0) - 6;
+  part(c, () => { c.moveTo(-24, -58 + bob); c.quadraticCurveTo(-4, -54 + bob, 32, -58 + bob); c.lineTo(30, -55 + bob); c.quadraticCurveTo(4, -50 + bob, -22, -55 + bob); c.closePath(); }, col(p, '#efe0c8'), 1.2);
+  part(c, () => { c.moveTo(-26, -57 + bob); c.quadraticCurveTo(-26, -86 + bob, 4, -88 + bob); c.quadraticCurveTo(34, -86 + bob, 34, -57 + bob); c.quadraticCurveTo(4, -62 + bob, -26, -57 + bob); c.closePath(); }, rg(c, p, -2, -78 + bob, 32, cap), 2);
+  if (!p.flash) [[-14, -70, 4.5], [0, -80, 5], [14, -74, 4], [24, -64, 3], [-20, -61, 2.6], [6, -66, 3]].forEach(([x, y, r]) => fillP(c, () => c.ellipse(x, y + bob, r, r * .8, 0, 0, TAU), spot));
+  // front arm (+ vine whip)
+  const fa = limb2(c, p, 6, -40, p.armF, 9, p.armF + p.elbF, 9 + p.ext * .4, 5, 4.5, skin);
+  if (f.state === 'skill' && f.sk === 2) {
+    const st = f.st, L = st < 6 ? 0 : st < 12 ? (st - 6) / 6 * 140 : st < 20 ? 140 * (1 - (st - 12) / 8) : 0;
+    if (L > 4) {
+      const pts = [];
+      for (let i = 0; i <= 10; i++) { const u = i / 10; pts.push([fa[0] + u * L, fa[1] + Math.sin(u * 7 - st) * 5 * u]); }
+      ribbon(c, p, pts, 5, 2, vine);
+      if (!p.flash) for (let i = 2; i < 10; i += 3) fillP(c, () => c.ellipse(pts[i][0], pts[i][1] - 4, 4, 2, -.6, 0, TAU), '#8bdc4a');
+    }
+  }
+  fillP(c, () => c.arc(fa[0], fa[1], 3.4, 0, TAU), col(p, skin));
+}
+
 // ============ the roster ============
 // moves: melee combo (jab1 -> jab2 -> fin). f = [startup, active, recovery] frames.
 // skills: three extra attacks (Q/E/R for player 1). Their code lives in game.js (SKILLS).
@@ -766,6 +970,98 @@ const CHARS = [
       if (f.sk === 2) { p.armF = 2.5; p.elbF = .8; p.lean = -.15; p.mouth = 'o'; p.eyes = 'closed'; }
     },
   },
+  {
+    id: 'gloop', name: 'GLOOP', title: 'Hungry slime monster',
+    hp: 101, w: 60, h: 66, speed: 3.4, jump: 11.5, jumps: 2, grav: .62, maxFall: 12, weight: 1.2,
+    reach: 8, shoulder: [26, -20], trail: '#9dff8a',
+    stats: { power: 4, speed: 2, jump: 4, magic: 2 },
+    moves: {
+      jab1: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 14, y: -50, w: 44, h: 34 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 4, kb: [2, -1], box: { x: 10, y: -54, w: 46, h: 40 }, anim: 'punch2', next: 'fin' },
+      fin: { f: [10, 5, 16], dmg: 10, kb: [8, -6], box: { x: 0, y: -96, w: 76, h: 96 }, anim: 'slam', cd: 30 },
+    },
+    skills: [
+      { name: 'Goo Glob', desc: 'Lob goo that leaves a sticky, slowing puddle.', cd: 120 },
+      { name: 'Boing', desc: 'Bounce high and splash down on enemies.', cd: 60, air: true },
+      { name: 'Gulp', desc: 'Swallow an enemy and spit them out. Beats blocking.', cd: 360 },
+    ],
+    draw: drawGloop,
+    pose(p, f) {
+      if (f.state !== 'skill') return;
+      if (f.sk === 0) { if (f.st < 10) { p.armF = -2.4; p.elbF = .5; p.sy = .94; } else { p.armF = 1.6; p.elbF = 0; p.sy = 1.04; } }
+      if (f.sk === 1) { if (f.vy < 0) { p.sy = 1.18; p.sx = .86; } else { p.sy = .9; p.sx = 1.12; } p.armF = 2.6; p.armB = -2.6; p.mouth = 'grin'; }
+      if (f.sk === 2) { if (f.st < 6) { p.sy = .9; p.sx = 1.1; } else if (f.st < 16) { p.sx = 1.18; p.sy = .94; p.lean = .15; p.armF = 1.4; p.armB = 1.2; } p.brow = 1; }
+    },
+  },
+  {
+    id: 'tempest', name: 'TEMPEST', title: 'Storm harpy',
+    hp: 95, w: 40, h: 98, speed: 4.3, jump: 11, jumps: 3, grav: .52, maxFall: 9, weight: .85,
+    reach: 10, shoulder: [6, -70], trail: '#ffe45c',
+    stats: { power: 2, speed: 4, jump: 5, magic: 4 },
+    moves: {
+      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -80, w: 46, h: 30 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [5, 3, 9], dmg: 5, kb: [1.5, -1], box: { x: 10, y: -46, w: 50, h: 34 }, anim: 'kick', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 10, kb: [6, -6], box: { x: -40, y: -104, w: 100, h: 100 }, anim: 'spin', cd: 28 },
+    },
+    skills: [
+      { name: 'Gust', desc: 'A blast of wind that shoves an enemy far away.', cd: 110 },
+      { name: 'Updraft', desc: 'Ride a whirlwind upward. Steer left and right.', cd: 60, air: true },
+      { name: 'Thunderstrike', desc: 'Lightning hits the spot ahead of you after a moment.', cd: 180 },
+    ],
+    draw: drawTempest,
+    pose(p, f) {
+      if (f.state !== 'skill') return;
+      if (f.sk === 0) ANIMS.cast(p, f.st < 9 ? 0 : f.st < 15 ? 1 : 2, f.st < 9 ? f.st / 9 : f.st < 15 ? (f.st - 9) / 6 : Math.min(1, (f.st - 15) / 7), this);
+      if (f.sk === 1) { p.armF = 2.6; p.armB = -2.6; p.elbF = .2; p.elbB = .2; p.legF = .5; p.kneeF = .8; }
+      if (f.sk === 2) { p.armF = 2.9; p.elbF = .1; p.armB = -2.2; p.glow = Math.min(1, f.st / 20); p.lean = -.08; }
+    },
+  },
+  {
+    id: 'mortis', name: 'MORTIS', title: 'The skeleton king',
+    hp: 101, w: 44, h: 116, speed: 3.5, jump: 10.5, jumps: 2, grav: .55, maxFall: 10, weight: 1.0,
+    reach: 10, shoulder: [8, -90], trail: '#7dffb0',
+    stats: { power: 4, speed: 2, jump: 3, magic: 5 },
+    moves: {
+      jab1: { f: [5, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -104, w: 48, h: 46 }, anim: 'sweep', next: 'jab2' },
+      jab2: { f: [5, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 12, y: -96, w: 50, h: 32 }, anim: 'punch', next: 'fin' },
+      fin: { f: [11, 5, 17], dmg: 10, kb: [8, -6], box: { x: 4, y: -130, w: 72, h: 126 }, anim: 'slam', cd: 30 },
+    },
+    skills: [
+      { name: 'Bone Spikes', desc: 'Spikes burst from the ground and race forward.', cd: 120 },
+      { name: 'Soul Leap', desc: 'Fly as a ghost the way you hold.', cd: 90, air: true },
+      { name: 'Soul Drain', desc: 'Drain life from an enemy in front of you.', cd: 300 },
+    ],
+    draw: drawMortis,
+    pose(p, f) {
+      if (f.state !== 'skill') return;
+      if (f.sk === 0) { if (f.st < 12) { p.armF = -2.6; p.armB = -2.4; p.elbF = .3; p.glow = f.st / 12; } else { p.armF = .9; p.armB = .7; p.lean = .2; p.sy = .94; } }
+      if (f.sk === 1) { p.alpha = f.st < 18 ? .45 : 1; p.lean = .4; p.armF = -1.2; p.armB = -1.4; p.legF = -.6; p.legB = -.8; }
+      if (f.sk === 2) { p.armF = 1.55; p.elbF = 0; p.ext = 6; p.glow = f.st >= 10 && f.st < 50 ? 1 : 0; p.armB = -.6; p.lean = .06; }
+    },
+  },
+  {
+    id: 'truffle', name: 'TRUFFLE', title: 'Little mushroom druid',
+    hp: 96, w: 36, h: 72, speed: 4.4, jump: 11, jumps: 2, grav: .58, maxFall: 10, weight: .78,
+    reach: 8, shoulder: [6, -40], trail: '#ffd27a',
+    stats: { power: 3, speed: 4, jump: 4, magic: 3 },
+    moves: {
+      jab1: { f: [4, 3, 9], dmg: 4, kb: [1.5, -1], box: { x: 8, y: -54, w: 44, h: 30 }, anim: 'punch', next: 'jab2' },
+      jab2: { f: [4, 3, 10], dmg: 4, kb: [1.5, -1], box: { x: 6, y: -36, w: 48, h: 32 }, anim: 'kick', next: 'fin' },
+      fin: { f: [7, 5, 14], dmg: 9, kb: [7, -5], box: { x: 4, y: -90, w: 60, h: 72 }, anim: 'headbutt', cd: 28 },
+    },
+    skills: [
+      { name: 'Spore Cloud', desc: 'A drifting cloud that poisons and slows one enemy.', cd: 140 },
+      { name: 'Mushroom Spring', desc: 'A mushroom pops up and bounces you high.', cd: 60, air: true },
+      { name: 'Vine Lash', desc: 'Crack a long vine whip.', cd: 100 },
+    ],
+    draw: drawTruffle,
+    pose(p, f) {
+      if (f.state !== 'skill') return;
+      if (f.sk === 0) ANIMS.cast(p, f.st < 9 ? 0 : f.st < 14 ? 1 : 2, f.st < 9 ? f.st / 9 : f.st < 14 ? (f.st - 9) / 5 : Math.min(1, (f.st - 14) / 8), this);
+      if (f.sk === 1) { p.legF = .9; p.kneeF = 1.4; p.legB = .6; p.kneeB = 1.2; p.armF = 2.6; p.armB = -2.6; p.mouth = 'grin'; }
+      if (f.sk === 2) { if (f.st < 6) { p.armF = -2.2; p.elbF = .6; p.lean = -.1; } else { p.armF = 1.5; p.elbF = 0; p.lean = .14; } }
+    },
+  },
 ];
 
 const ANIMS = {
@@ -931,13 +1227,16 @@ function drawBarrier(c, C, f, t) {
 }
 
 function drawFighter(c, f, t) {
-  if (f.gone) return;
+  if (f.gone || f.gulpT > 0) return;
   const C = CHARS[f.c], p = computePose(f, t);
   c.save();
   if (f.onGround || f.state === 'ko') {
     const g = c.createRadialGradient(f.x, f.y + 2, 2, f.x, f.y + 2, C.w * .8);
     g.addColorStop(0, 'rgba(0,0,0,.38)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g; c.beginPath(); c.ellipse(f.x, f.y + 2, C.w * .8, 7, 0, 0, TAU); c.fill();
+  }
+  if (f.slowT > 0) {   // sticky goo on the feet
+    c.fillStyle = 'rgba(110,220,110,.55)'; c.beginPath(); c.ellipse(f.x, f.y, C.w * .55, 5, 0, 0, TAU); c.fill();
   }
   c.translate(f.x, f.y + p.bob);
   c.scale(f.face, 1);

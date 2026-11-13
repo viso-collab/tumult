@@ -7,13 +7,13 @@ const FALL_DAMAGE = 15;       // HP lost when falling off the stage
 const WINS_NEEDED = 2;
 const COMBO_WINDOW = 40;      // how long you have to continue the combo after a hit (frames, ~0.67 s)
 
-function newState(mode, online) {
+function newState(mode, online, solo) {
   const n = mode === '2v2' ? 4 : 2;
   const defaults = [0, 2, 5, 3];
   const players = [];
   for (let i = 0; i < n; i++) players.push({ char: defaults[i], ready: false, team: n === 2 ? i : i % 2, cpu: false });
   return {
-    mode, online: !!online, requireHumans: !!online && mode === '1v1', code: '',
+    mode, online: !!online, solo: !!solo, requireHumans: !!online && mode === '1v1', code: '',
     screen: 'select', tick: 0, players,
     map: mode === '2v2' ? MAPS.findIndex(m => m.large) : 0,
     fighters: [], projectiles: [], events: [],
@@ -32,7 +32,7 @@ function setCpu(s, i, cpu) {
   const P = s.players[i];
   if (!P || P.cpu === cpu) return;
   P.cpu = cpu;
-  if (cpu) { P.ready = true; P.char = Math.floor(Math.random() * CHARS.length); }
+  if (cpu) { P.ready = !s.solo; P.char = Math.floor(Math.random() * CHARS.length); }
   else P.ready = false;
 }
 
@@ -56,17 +56,31 @@ function step(s, inp) {
 }
 
 // ---------- menus ----------
-const COLS = 4;
+function gridCols(s) { return s.mode === '2v2' ? 6 : 4; }   // 1v1: 4x3 big cards, 2v2: 6x2 small cards
+function selectNav(pl, p, cols) {
+  const N = CHARS.length, rows = Math.ceil(N / cols);
+  const col = pl.char % cols, row = Math.floor(pl.char / cols), fix = v => Math.min(N - 1, v);
+  if (p.left) pl.char = fix(row * cols + (col + cols - 1) % cols);
+  if (p.right) pl.char = fix(row * cols + (col + 1) % cols);
+  if (p.up) pl.char = fix(((row + rows - 1) % rows) * cols + col);
+  if (p.down) pl.char = fix(((row + 1) % rows) * cols + col);
+}
 function stepSelect(s, P) {
-  const N = CHARS.length, rows = Math.ceil(N / COLS);
+  const cols = gridCols(s);
+  if (s.solo) {   // vs CPU: you pick your own fighter, then one for each CPU
+    const p = P[0], back = p.s1 || p.s2 || p.s3, cur = s.players.findIndex(pl => !pl.ready);
+    if (cur < 0) return;
+    if (p.attack) { s.players[cur].ready = true; ev(s, { t: 'ok' }); }
+    else if (back) { if (cur > 0) s.players[cur - 1].ready = false; }
+    else selectNav(s.players[cur], p, cols);
+    if (s.players.every(pl => pl.ready)) s.screen = 'map';
+    return;
+  }
   s.players.forEach((pl, i) => {
     if (pl.cpu) { pl.ready = true; return; }
     const p = P[i], skill = p.s1 || p.s2 || p.s3;
     if (!pl.ready) {
-      const col = pl.char % COLS, row = Math.floor(pl.char / COLS);
-      if (p.left) pl.char = row * COLS + (col + COLS - 1) % COLS;
-      if (p.right) pl.char = row * COLS + (col + 1) % COLS;
-      if (p.up || p.down) pl.char = ((row + 1) % rows) * COLS + col;
+      selectNav(pl, p, cols);
       if (p.attack) { pl.ready = true; ev(s, { t: 'ok' }); }
       else if (skill && s.mode === '2v2') switchTeam(s, i);
     } else if (skill) pl.ready = false;
@@ -90,13 +104,13 @@ function stepMap(s, P) {
     if (P[i].left) s.map = (s.map + M - 1) % M;
     if (P[i].right) s.map = (s.map + 1) % M;
     if (P[i].attack) { startMatch(s); return; }
-    if (P[i].s1 || P[i].s2 || P[i].s3) { s.screen = 'select'; s.players.forEach(p => { if (!p.cpu) p.ready = false; }); return; }
+    if (P[i].s1 || P[i].s2 || P[i].s3) { s.screen = 'select'; s.players.forEach(p => { if (!p.cpu || s.solo) p.ready = false; }); return; }
   }
 }
 function stepResult(s, P) {
   if (s.phaseT++ < 60) return;
   if (s.players.some((p, i) => !p.cpu && P[i].attack)) {
-    s.screen = 'select'; s.players.forEach(p => { if (!p.cpu) p.ready = false; });
+    s.screen = 'select'; s.players.forEach(p => { if (!p.cpu || s.solo) p.ready = false; });
     s.fighters = []; s.projectiles = [];
   }
 }
@@ -115,6 +129,7 @@ function makeFighter(ci, i, team, sp, m) {
     hitstun: 0, blockstun: 0, inv: 0, flash: 0, dropT: 0, landT: 0, hs: 0,
     glide: false, noGrav: false, armor: false, quaked: false, spAir: false, endAt: 0, gone: false,
     comboNext: null, comboT: 0, moltenT: 0, stealthT: 0, zip: null,
+    slowT: 0, gulpT: 0, gulpBy: -1, fullT: 0, lastHit: '',
   };
 }
 function startRound(s) {
@@ -192,6 +207,7 @@ function updateFighters(s, I, P) {
     if (f.gone) return;
     const C = CHARS[f.c], inp = I[i] || {}, pr = P[i] || {};
     if (pr.attack) f.buf = 8; else if (f.buf > 0) f.buf--;
+    if (f.gulpT > 0) { swallowed(s, f); return; }
     if (f.hs > 0) { f.hs--; return; }   // hit-stop: a tiny freeze when a hit lands
     f.st++;
     if (f.flash > 0) f.flash--;
@@ -202,6 +218,8 @@ function updateFighters(s, I, P) {
     if (f.landT > 0) f.landT--;
     if (f.comboT > 0) f.comboT--;
     if (f.stealthT > 0) f.stealthT--;
+    if (f.slowT > 0) f.slowT--;
+    if (f.fullT > 0) f.fullT--;
     if (f.moltenT > 0) {
       f.moltenT--;
       if (s.tick % 20 === 0) for (const o of s.fighters) {   // Molten Core: touching Magmor burns
@@ -226,6 +244,21 @@ function updateFighters(s, I, P) {
   pushApart(s);
 }
 
+// Gloop's Gulp: the swallowed fighter rides inside Gloop and gets spat out
+function swallowed(s, f) {
+  const h = s.fighters[f.gulpBy];
+  f.gulpT--;
+  if (h) { f.x = h.x; f.y = h.y - 2; }
+  f.vx = 0; f.vy = 0; f.inv = 2; f.state = 'hurt'; f.hitstun = 2;
+  if (f.gulpT > 0 && h && h.state !== 'ko' && !h.gone) return;
+  f.gulpT = 0; f.inv = 0;
+  const d = h ? h.face : 1;
+  if (h) h.fullT = 0;
+  f.x += d * 34;
+  applyHit(s, f, 8, d * 9, -6, f.x, f.y - 30, f.x - d * 40);
+  ev(s, { t: 'goo', x: f.x, y: f.y - 30 });
+}
+
 function control(s, f, C, inp, pr, plats) {
   if (f.state === 'block' && f.blockstun > 0) return;
   // melee combo (one button)
@@ -244,9 +277,9 @@ function control(s, f, C, inp, pr, plats) {
   }
   if (f.state === 'block') setState(f, 'idle');
 
-  const dir = dirOf(inp);
-  if (f.onGround) { f.vx += (dir * C.speed - f.vx) * .3; if (dir) f.face = dir; }   // keep facing the way you last walked
-  else { f.vx += (dir * C.speed - f.vx) * .1; if (dir) f.face = dir; }
+  const dir = dirOf(inp), spd = C.speed * (f.slowT > 0 ? .55 : 1);
+  if (f.onGround) { f.vx += (dir * spd - f.vx) * .3; if (dir) f.face = dir; }   // keep facing the way you last walked
+  else { f.vx += (dir * spd - f.vx) * .1; if (dir) f.face = dir; }
 
   if (pr.up) {
     const pl = plats[f.plat];
@@ -350,7 +383,7 @@ function hitEnemies(s, f, box, dmg, kb, opts) {
   const r = boxRect(f, box);
   let any = false;
   for (const o of s.fighters) {
-    if (o === f || o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0 || f.hitSet.includes(o.idx)) continue;
+    if (o === f || o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0 || o.gulpT > 0 || f.hitSet.includes(o.idx)) continue;
     if (opts.single && f.lock >= 0 && o.idx !== f.lock) continue;   // this attack only hits one enemy
     const h = hurtRect(o);
     if (!overlap(r, h)) continue;
@@ -359,7 +392,7 @@ function hitEnemies(s, f, box, dmg, kb, opts) {
     const dir = opts.radial ? (o.x >= f.x ? 1 : -1) : f.face;
     const hx = (Math.max(r.x, h.x) + Math.min(r.x + r.w, h.x + h.w)) / 2;
     const hy = (Math.max(r.y, h.y) + Math.min(r.y + r.h, h.y + h.h)) / 2;
-    applyHit(s, o, dmg, kb[0] * dir, kb[1], hx, hy, f.x, opts);
+    f.lastHit = applyHit(s, o, dmg, kb[0] * dir, kb[1], hx, hy, f.x, opts);
     f.hs = Math.max(f.hs, o.hs);
     any = true;
   }
@@ -388,6 +421,10 @@ function applyHit(s, o, dmg, kx, ky, hx, hy, fromX, opts) {
   o.flash = 6; o.noGrav = false; o.glide = false; o.armor = false;
   o.comboT = 0; o.stealthT = 0; o.zip = null;
   o.hs = dmg >= 10 ? 7 : dmg >= 6 ? 5 : 3;
+  if (o.fullT > 0) {   // hitting Gloop makes him spit out whoever he swallowed
+    const v = s.fighters.find(v => v.gulpT > 0 && v.gulpBy === o.idx);
+    if (v) v.gulpT = 1;
+  }
   ev(s, { t: opts.stun ? 'snare' : 'hit', x: hx, y: hy, big: dmg >= 10, magic: !!opts.magic });
   return 'hit';
 }
@@ -432,6 +469,9 @@ function updateProjectiles(s) {
       return;
     }
     if (p.type === 'magma') p.vy += .45;
+    if (p.type === 'goo') p.vy += .4;
+    if (p.type === 'bone') p.vy += .12;
+    if (p.type === 'spore') { p.vx *= .985; p.y += Math.sin(p.age * .1) * .4; }
     if (p.type === 'raven') {   // flies out, slows down and comes back like a boomerang
       p.vx -= p.dir0 * .26;
       p.y = p.y0 + Math.sin(p.age * .22) * 10;
@@ -448,15 +488,17 @@ function updateProjectiles(s) {
     if (p.ground) {
       const pl = plats[p.plat];
       if (!pl || p.x < pl.x - 2 || p.x > pl.x + pl.w + 2) { p.life = 0; if (p.vx) ev(s, { t: 'puff', x: p.x, y: p.y }); }
-      else { p.y = pl.y; if (pl.dx) p.x += pl.dx; if (p.type === 'wave' && s.tick % 4 === 0) ev(s, { t: 'puff', x: p.x, y: p.y, small: true }); }
+      else { p.y = pl.y; if (pl.dx) p.x += pl.dx; if ((p.type === 'wave' || p.type === 'spikes') && s.tick % 4 === 0) ev(s, { t: 'puff', x: p.x, y: p.y, small: true }); }
     }
-    if (p.type === 'magma' && p.vy > 0) {   // lands and leaves a burning pool
+    if ((p.type === 'magma' || p.type === 'goo') && p.vy > 0) {   // lands and leaves a pool
       for (let k = 0; k < plats.length; k++) {
         const pl = plats[k], bottom = p.y + p.h / 2;
         if (p.x > pl.x && p.x < pl.x + pl.w && bottom >= pl.y && bottom - p.vy <= pl.y + 1) {
-          p.life = 0; ev(s, { t: 'splash', x: p.x, y: pl.y });
+          const goo = p.type === 'goo';
+          p.life = 0; ev(s, { t: goo ? 'goo' : 'splash', x: p.x, y: pl.y });
           const px = pl.w < 90 ? pl.x + pl.w / 2 : Math.max(pl.x + 45, Math.min(pl.x + pl.w - 45, p.x));
-          born.push({ type: 'pool', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
+          if (goo) born.push({ type: 'puddle', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 20, dmg: 0, chip: true, slow: true, pierce: true, tickEvery: 10, life: 240, owner: p.owner, team: p.team, age: 0, hitSet: [] });
+          else born.push({ type: 'pool', area: true, ground: true, plat: k, x: px, y: pl.y, vx: 0, vy: 0, w: 90, h: 22, dmg: 2, chip: true, pierce: true, tickEvery: 20, life: 200, owner: p.owner, team: p.team, age: 0, hitSet: [] });
           break;
         }
       }
@@ -474,12 +516,13 @@ function updateProjectiles(s) {
     if (p.life > 0 && !p.harmless) {
       const r = projRect(p);
       for (const o of s.fighters) {
-        if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0 || p.hitSet.includes(o.idx)) continue;
+        if (o.team === p.team || o.state === 'ko' || o.gone || o.inv > 0 || o.gulpT > 0 || p.hitSet.includes(o.idx)) continue;
         if (p.group && p.group.lock >= 0 && o.idx !== p.group.lock) continue;   // shots only hit one enemy
         if (!overlap(r, hurtRect(o))) continue;
         p.hitSet.push(o.idx);
         if (p.group) p.group.lock = o.idx;
-        if (p.chip) { chip(s, o, p.dmg); continue; }
+        if (p.slow) o.slowT = Math.max(o.slowT || 0, 40);
+        if (p.chip) { if (p.dmg) chip(s, o, p.dmg); continue; }
         const dir = p.radial ? (o.x >= p.x ? 1 : -1) : Math.sign(p.vx || (owner ? owner.face : 1));
         const res = applyHit(s, o, p.dmg, p.kb[0] * dir, p.kb[1], o.x - dir * CHARS[o.c].w * .3, Math.max(r.y + 4, o.y - CHARS[o.c].h * .55), p.radial ? p.x : o.x - dir * 10, { stun: p.stun, magic: p.magic });
         if (p.type === 'harpoon' && res === 'hit' && owner) {   // reel the enemy in
@@ -788,6 +831,147 @@ const SKILLS = {
           hitEnemies(s, f, { x: -140, y: -150, w: 280, h: 160 }, 4, [11, -7], { radial: true });
         }
         if (f.st >= 32) endSkill(f);
+      },
+    },
+  ],
+  gloop: [
+    { // Goo Glob
+      start: noop,
+      update(f, s) {
+        f.vx *= .75; if (f.st < 12) hover(f, .6);
+        if (f.st === 10) spawnProj(s, f, { type: 'goo', x: f.x + f.face * 26, y: f.y - 50, vx: f.face * 7.5, vy: -6, w: 22, h: 22, dmg: 6, kb: [4, -4], life: 120, reflect: true });
+        if (f.st >= 24) endSkill(f);
+      },
+    },
+    { // Boing
+      start(f, s) { f.vy = -14; f.onGround = false; ev(s, { t: 'goo', x: f.x, y: f.y, small: true }); },
+      update(f, s, inp) {
+        steer(f, inp, 4, .1);
+        if (f.vy > 0) f.vy += .3;   // falls fast after the top
+        if (f.st > 4 && f.onGround) {
+          hitEnemies(s, f, { x: -66, y: -38, w: 132, h: 42 }, 8, [6, -7], { radial: true, single: true });
+          ev(s, { t: 'goo', x: f.x, y: f.y }); ev(s, { t: 'quake', x: f.x, y: f.y, small: true });
+          endSkill(f);
+        } else if (f.st >= 80) endSkill(f);
+      },
+    },
+    { // Gulp (a grab: goes through blocks)
+      start: noop,
+      update(f, s) {
+        if (f.st < 6) f.vx *= .6;
+        else if (f.st < 16) {
+          f.vx = f.face * 5;
+          if (f.fullT <= 0) {
+            const r = boxRect(f, { x: 6, y: -66, w: 46, h: 66 });
+            for (const o of s.fighters) {
+              if (o.team === f.team || o.state === 'ko' || o.gone || o.inv > 0 || o.gulpT > 0 || !overlap(r, hurtRect(o))) continue;
+              o.gulpT = 50; o.gulpBy = f.idx; f.fullT = 50;
+              o.state = 'hurt'; o.st = 0; o.move = null; o.sk = -1; o.noGrav = false; o.armor = false; o.zip = null; o.comboT = 0; o.stealthT = 0;
+              ev(s, { t: 'gulp', x: o.x, y: o.y - 30 });
+              break;
+            }
+          }
+        } else { f.vx *= .7; if (f.st >= 28) endSkill(f); }
+      },
+    },
+  ],
+  tempest: [
+    { // Gust
+      start: noop,
+      update(f, s) {
+        if (f.st < 12) hover(f, .6);
+        if (f.st === 9) spawnProj(s, f, { type: 'gust', x: f.x + f.face * 30, y: f.y - 60, vx: f.face * 9, vy: 0, w: 40, h: 44, dmg: 5, kb: [12, -4], life: 50, reflect: true, magic: true });
+        if (f.onGround) f.vx *= .8;
+        if (f.st >= 22) endSkill(f);
+      },
+    },
+    { // Updraft
+      start(f) { f.vy = Math.min(f.vy, -4); f.onGround = false; },
+      update(f, s, inp) {
+        if (f.st < 26) {
+          f.noGrav = true; f.vy = Math.max(f.vy - .9, -9); steer(f, inp, 3.5, .12);
+          hitEnemies(s, f, { x: -34, y: -110, w: 68, h: 120 }, 5, [3, -8], { radial: true, magic: true, single: true });
+          if (f.st % 3 === 0) ev(s, { t: 'wind', x: f.x, y: f.y });
+        } else endSkill(f);
+      },
+    },
+    { // Thunderstrike: always the same distance ahead, no aiming
+      start(f) { f.tx = f.x + f.face * 180; f.ty = f.y; },
+      update(f, s) {
+        f.vx *= .6; hover(f, .5);
+        if (f.st === 2) spawnProj(s, f, { type: 'cloud', x: f.tx, y: f.ty - 200, vx: 0, vy: 0, w: 10, h: 10, harmless: true, life: 40 });
+        if (f.st === 24) {
+          spawnProj(s, f, { type: 'thunder', anchor: 'bottom', x: f.tx, y: f.ty + 10, vx: 0, vy: 0, w: 52, h: 210, dmg: 12, kb: [4, -8], radial: true, pierce: true, life: 10, magic: true });
+          ev(s, { t: 'thunder', x: f.tx, y: f.ty });
+        }
+        if (f.st >= 36) endSkill(f);
+      },
+    },
+  ],
+  mortis: [
+    { // Bone Spikes (a thrown bone in the air)
+      start: noop,
+      update(f, s) {
+        f.vx *= .7; if (f.st < 14) hover(f, .6);
+        if (f.st === 12) {
+          if (f.onGround) spawnProj(s, f, { type: 'spikes', ground: true, plat: f.plat, x: f.x + f.face * 36, y: f.y, vx: f.face * 6, vy: 0, w: 40, h: 46, dmg: 8, kb: [3, -8], life: 60, magic: true });
+          else spawnProj(s, f, { type: 'bone', x: f.x + f.face * 24, y: f.y - 70, vx: f.face * 9, vy: 2.5, w: 22, h: 22, dmg: 7, kb: [5, -4], life: 60, reflect: true });
+        }
+        if (f.st >= 26) endSkill(f);
+      },
+    },
+    { // Soul Leap
+      start(f) { f.inv = Math.max(f.inv, 10); },
+      update(f, s, inp) {
+        if (f.st === 0) { [f.bdx, f.bdy] = aimDir(f, inp, -1); f.onGround = false; }
+        if (f.st < 18) {
+          f.noGrav = true; f.vx = f.bdx * 9.5; f.vy = f.bdy * 9.5;
+          hitEnemies(s, f, { x: -24, y: -100, w: 48, h: 100 }, 6, [5, -5], { radial: true, magic: true, single: true });
+          if (f.st % 2 === 0) ev(s, { t: 'soul', x: f.x, y: f.y - 50 });
+        } else {
+          if (f.st === 18) { f.vx *= .4; f.vy *= .3; }
+          f.noGrav = false;
+          if (f.st >= 24) endSkill(f);
+        }
+      },
+    },
+    { // Soul Drain
+      start: noop,
+      update(f, s, inp, C) {
+        f.vx *= .6; hover(f, .5);
+        if (f.st >= 10 && f.st < 50 && (f.st - 10) % 10 === 0) {
+          f.hitSet = [];
+          if (hitEnemies(s, f, { x: 10, y: -104, w: 112, h: 70 }, 3, [1, -1], { magic: true, single: true }) && f.lastHit === 'hit') {
+            f.hp = Math.min(C.hp, f.hp + 3); ev(s, { t: 'soul', x: f.x, y: f.y - 60 });
+          }
+        }
+        if (f.st >= 58) endSkill(f);
+      },
+    },
+  ],
+  truffle: [
+    { // Spore Cloud
+      start: noop,
+      update(f, s) {
+        f.vx *= .75; if (f.st < 12) hover(f, .6);
+        if (f.st === 10) spawnProj(s, f, { type: 'spore', x: f.x + f.face * 36, y: f.y - 44, vx: f.face * 3, vy: 0, w: 60, h: 56, dmg: 3, chip: true, slow: true, pierce: true, tickEvery: 15, life: 110 });
+        if (f.st >= 22) endSkill(f);
+      },
+    },
+    { // Mushroom Spring
+      start(f, s) {
+        spawnProj(s, f, { type: 'shroom', anchor: 'bottom', x: f.x, y: f.y + (f.onGround ? 0 : 24), vx: 0, vy: 0, w: 64, h: 30, dmg: 5, kb: [4, -7], radial: true, pierce: true, life: 30 });
+        f.vy = -15; f.onGround = false;
+        ev(s, { t: 'boing', x: f.x, y: f.y });
+      },
+      update(f, s, inp) { steer(f, inp, 4, .1); if (f.st >= 16) endSkill(f); },
+    },
+    { // Vine Lash
+      start: noop,
+      update(f, s) {
+        f.vx *= .6; if (f.st < 20) hover(f, .6);
+        if (f.st >= 8 && f.st < 13) hitEnemies(s, f, { x: 16, y: -66, w: 140, h: 40 }, 10, [8, -6], { single: true });
+        if (f.st >= 26) endSkill(f);
       },
     },
   ],
