@@ -906,6 +906,30 @@ function drawTrail(c, C, p) {
   c.restore();
 }
 
+// blue barrier in front of a blocking fighter (only the side they face)
+function drawBarrier(c, C, f, t) {
+  const a = Math.min(1, f.st / 4), hit = f.blockstun > 0 ? f.blockstun / 8 : 0;
+  const x = C.w * .5 + 10, y = -C.h * .5, ry = C.h * .66, rx = 17;
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  c.globalAlpha *= a * (.75 + hit * .25);
+  const g = c.createRadialGradient(x - 10, y, 2, x, y, ry);
+  g.addColorStop(0, `rgba(120,200,255,${.22 + hit * .3})`); g.addColorStop(.7, `rgba(80,170,255,${.45 + hit * .3})`); g.addColorStop(1, 'rgba(60,140,255,0)');
+  c.fillStyle = g;
+  c.beginPath(); c.ellipse(x, y, rx + 6, ry, 0, 0, TAU); c.fill();
+  c.lineCap = 'round';
+  [['rgba(70,160,255,.45)', 14], ['rgba(110,200,255,.8)', 6], ['#e2f6ff', 3]].forEach(([s, w]) => {
+    c.strokeStyle = s; c.lineWidth = w + hit * 3;
+    c.beginPath(); c.ellipse(x - 4, y, rx, ry, 0, -Math.PI / 2, Math.PI / 2); c.stroke();
+  });
+  c.strokeStyle = 'rgba(200,238,255,.6)'; c.lineWidth = 1.4;
+  for (let i = -2; i <= 2; i++) {
+    const yy = y + i * ry * .32 + Math.sin(t * .15 + i) * 2, k = Math.sqrt(1 - Math.min(.95, ((yy - y) / ry) ** 2));
+    c.beginPath(); c.moveTo(x - 4 + rx * k * .2, yy); c.lineTo(x - 4 + rx * k, yy); c.stroke();
+  }
+  c.restore();
+}
+
 function drawFighter(c, f, t) {
   if (f.gone) return;
   const C = CHARS[f.c], p = computePose(f, t);
@@ -925,5 +949,6 @@ function drawFighter(c, f, t) {
   if (f.stealthT > 0) c.globalAlpha *= .18;
   c.save(); C.draw(c, f, p, t); c.restore();
   drawTrail(c, C, p);
+  if (f.state === 'block') drawBarrier(c, C, f, t);
   c.restore();
 }
